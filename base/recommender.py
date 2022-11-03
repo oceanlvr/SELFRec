@@ -9,8 +9,9 @@ class Recommender(object):
     def __init__(self, conf, training_set, test_set, **kwargs):
         self.config = conf
         self.data = Data(self.config, training_set, test_set)
+        # 初始化来自config的参数
         self.model_name = self.config['model.name']
-        self.ranking = OptionConf(self.config['item.ranking'])
+        self.ranking = OptionConf(self.config['item.ranking']) # options:{'-topN': '10,20'}
         self.emb_size = int(self.config['embbedding.size'])
         self.maxEpoch = int(self.config['num.max.epoch'])
         self.batch_size = int(self.config['batch_size'])

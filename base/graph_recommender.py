@@ -11,6 +11,7 @@ import sys
 class GraphRecommender(Recommender):
     def __init__(self, conf, training_set, test_set, **kwargs):
         super(GraphRecommender, self).__init__(conf, training_set, test_set, **kwargs)
+        # 这里是初始化数据集相关的东西包括 user 和 item 总数量，ui_adj norm_adj 矩阵等
         self.data = Interaction(conf, training_set, test_set)
         self.bestPerformance = []
         top = self.ranking['-topN'].split(',')

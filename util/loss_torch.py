@@ -1,19 +1,21 @@
 import torch
 import torch.nn.functional as F
 
-
+# 推荐系统用的loss，主要有两个部分，正例的分数和负例的分数
 def bpr_loss(user_emb, pos_item_emb, neg_item_emb):
-    pos_score = torch.mul(user_emb, pos_item_emb).sum(dim=1)
+    pos_score = torch.mul(user_emb, pos_item_emb).sum(dim=1) # sum(1) 是按行加和，user_emb 和 pos_item_emb之间即
     neg_score = torch.mul(user_emb, neg_item_emb).sum(dim=1)
-    loss = -torch.log(10e-8 + torch.sigmoid(pos_score - neg_score))
-    return torch.mean(loss)
+    loss = -torch.log(10e-8 + torch.sigmoid(pos_score - neg_score)) # 10e-8 理解是防止刚好等于0，使得梯度为0 导致梯度NAN
+    return torch.mean(loss) # 当前batch所有的样本Loss求mean平均
 
 def triplet_loss(user_emb, pos_item_emb, neg_item_emb):
+    # 这里是使用了 weight sum 也就是图的 readout 函数
     pos_score = torch.mul(user_emb, pos_item_emb).sum(dim=1)
     neg_score = torch.mul(user_emb, neg_item_emb).sum(dim=1)
-    loss = F.relu(neg_score+1-pos_score)
+    loss = F.relu(neg_score + 1 - pos_score)
     return torch.mean(loss)
 
+# 这个Loss是用来算node embedding的 L2 约束的,也就是SGL论文的最后一项
 def l2_reg_loss(reg, *args):
     emb_loss = 0
     for emb in args:
