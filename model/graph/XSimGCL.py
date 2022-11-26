@@ -36,6 +36,12 @@ class XSimGCL(GraphRecommender):
                 optimizer.zero_grad()
                 batch_loss.backward()
                 optimizer.step()
+                wandb.log({
+                    'epoch': epoch + 1,
+                    'batch_loss': batch_loss.item(),
+                    'rec_loss': rec_loss.item(),
+                    'cl_loss': cl_loss.item(),
+                })
                 if n % 100==0:
                     print('training:', epoch + 1, 'batch', n, 'rec_loss:', rec_loss.item(), 'cl_loss', cl_loss.item())
             with torch.no_grad():

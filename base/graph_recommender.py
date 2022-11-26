@@ -75,7 +75,7 @@ class GraphRecommender(Recommender):
         print('The result has been output to ', abspath(out_dir), '.')
         file_name = self.config['name'] + '@' + current_time + '-performance' + '.txt'
         self.result = ranking_evaluation(self.data.test_set, rec_list, [int(num) for num in self.config['ranking']])
-        wandb.log({ finnal_result: self.result })
+        wandb.log({ 'finnal_result': self.result })
         FileIO.write_file(out_dir, file_name, self.result)
         print('The result of %s:\n%s' % (self.config['name'], ''.join(self.result)))
 

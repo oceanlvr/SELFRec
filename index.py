@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=str, default='/workspace/')
     parser.add_argument('--dataset', type=str, default='iFashion')
     parser.add_argument('--gpu_id', type=int, default=0)
-    # parser.add_argument('--config', type=str, default='default.yaml')
+    parser.add_argument('--notes', type=str)
     parser.add_argument('--model', type=str, default='SGL')
     parser.add_argument('--tags', type=str)  # 这里是一些标签
     # Register your model here
@@ -23,8 +23,8 @@ if __name__ == '__main__':
     config_path = composePath(args.root, 'conf', args.model + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args.dataset]
     wandb.init(project="gclrec",entity="oceanlvr",config={})
-    wandb.config.update(args)
     wandb.config.update(config)
+    wandb.config.update(args)
     fix_random_seed(wandb.config['seed'])
 
     if wandb.config['model'] not in graph_models:
