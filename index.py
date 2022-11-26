@@ -22,14 +22,21 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float)
     parser.add_argument('--lambda', type=float)
     # model_config args
-    parser.add_argument( '-x','-m', '--model_config', nargs='*',
+    parser.add_argument('-x', '-m', '--model_config', nargs='*',
                         action=ParseKwargs, help="-m num_layers=1 alpha=2", default={})
-    # template
+    # template SGL
     parser.add_argument('--model_config.droprate', type=float)
     parser.add_argument('--model_config.augtype', type=int)
     parser.add_argument('--model_config.temperature', type=float)
     parser.add_argument('--model_config.num_layers', type=int)
     parser.add_argument('--model_config.lambda', type=float)
+
+    # template NCL
+    parser.add_argument('--model_config.hyper_layers', type=int)
+    parser.add_argument('--model_config.ssl_reg', type=float)
+    parser.add_argument('--model_config.proto_reg', type=float)
+    parser.add_argument('--model_config.alpha', type=float)
+    parser.add_argument('--model_config.num_clusters', type=float)
 
     # Register your model here
     baseline = ['LightGCN', 'DirectAU', 'MF']

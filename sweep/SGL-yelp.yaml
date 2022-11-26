@@ -1,0 +1,46 @@
+# config.yaml
+program: /workspace/index.py
+method: bayes
+name: sweep
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - "--model"
+  - "SGL"
+  - "--gpu_id"
+  - "0"
+  - "--dataset"
+  - "yelp2018"
+  - ${args}
+metric:
+  goal: maximize
+  name: target
+parameters:
+  embbedding_size: 
+    values: [16, 32, 64]
+  # num_epochs:
+  #   values: [5, 10, 15]
+  batch_size: 
+    values: [16,32,64]
+  learning_rate:
+    min: 0.0001
+    max: 0.01
+  lambda: 
+    max: 0.01
+    min: 0.0001
+  batch_size: 
+    values: [512, 1024, 2048]
+  model_config.droprate: 
+    max: 0.99
+    min: 0.01
+  model_config.augtype:
+    values: [0, 1]
+  model_config.temperature: 
+    max: 0.9
+    min: 0.05
+  model_config.num_layers: 
+    values: [1, 2, 3]
+  model_config.lambda: 
+    max: 0.5
+    min: 0.05

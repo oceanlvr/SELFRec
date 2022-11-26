@@ -231,6 +231,6 @@ nohup python index.py --gpu_id=3 --model=SGL --dataset=yelp2018 -m augtype=1 --t
 Sweep
 
 ```shell
-wandb sweep --project sweep_gclrec sweep.yaml
-wandb agent oceanlvr/sweep_gclrec/xxx
+wandb sweep --project sweep_gclrec ./sweep/SGL.yaml
+wandb agent --count 5 oceanlvr/sweep_gclrec/xxx
 ```

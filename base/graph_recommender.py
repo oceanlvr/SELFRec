@@ -121,7 +121,10 @@ class GraphRecommender(Recommender):
             'precision': self.bestPerformance[1]['Precision'],
             'recall': self.bestPerformance[1]['Recall'],
             'NDCG': self.bestPerformance[1]['NDCG'],
-            'epoch': self.bestPerformance[0],
+            'target': 0.1*self.bestPerformance[1]['Hit Ratio'] +
+                0.1*self.bestPerformance[1]['Precision'] + 
+                0.4*self.bestPerformance[1]['Recall']+
+                0.4*self.bestPerformance[1]['NDCG']
         })
 
         print('*Best Performance* ')

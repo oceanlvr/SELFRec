@@ -13,10 +13,33 @@ yelp2018:
   output: ./results/
   # model config
   model_config:
-    num_layers: 3
+    num_layers: 2
+    hyper_layers: 1
     ssl_reg: 0.000001
     proto_reg: 0.0000001
-    tau: 0.05
+    temperature: 0.05
+    alpha: 1.5
+    num_clusters: 2000
+
+iFashion:
+  name: NCL
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+  embbedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config:
+    num_layers: 2
     hyper_layers: 1
+    ssl_reg: 0.000001
+    proto_reg: 0.0000001
+    temperature: 0.05
     alpha: 1.5
     num_clusters: 2000
