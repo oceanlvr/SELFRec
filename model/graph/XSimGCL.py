@@ -13,25 +13,25 @@ from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
 class XSimGCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
         super(XSimGCL, self).__init__(conf, training_set, test_set)
-        args = OptionConf(self.config['XSimGCL'])
-        self.cl_rate = float(args['-lambda'])
-        self.eps = float(args['-eps'])
-        self.temp = float(args['-tau'])
-        self.n_layers = int(args['-n_layer'])
-        self.layer_cl = int(args['-l*'])
-        self.model = XSimGCL_Encoder(self.data, self.emb_size, self.eps, self.n_layers,self.layer_cl)
+        self.model = XSimGCL_Encoder(
+            self.data,
+            self.config['embbedding_size'],
+            self.config['model_config']['eps'],
+            self.config['model_config']['num_layers'],
+            self.config['model_config']['layer_cl']
+        )
 
     def train(self):
         model = self.model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lRate)
-        for epoch in range(self.maxEpoch):
-            for n, batch in enumerate(next_batch_pairwise(self.data, self.batch_size)):
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.config['learning_rate'])
+        for epoch in range(self.config['num_epochs']):
+            for n, batch in enumerate(next_batch_pairwise(self.data, self.config['batch_size'])):
                 user_idx, pos_idx, neg_idx = batch
                 rec_user_emb, rec_item_emb, cl_user_emb, cl_item_emb  = model(True)
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
-                cl_loss = self.cl_rate * self.cal_cl_loss([user_idx,pos_idx],rec_user_emb,cl_user_emb,rec_item_emb,cl_item_emb)
-                batch_loss =  rec_loss + l2_reg_loss(self.reg, user_emb, pos_item_emb) + cl_loss
+                cl_loss = self.config['model_config']['lambda'] * self.cal_cl_loss([user_idx,pos_idx],rec_user_emb,cl_user_emb,rec_item_emb,cl_item_emb)
+                batch_loss =  rec_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb) + cl_loss
                 # Backward and optimize
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -46,8 +46,8 @@ class XSimGCL(GraphRecommender):
     def cal_cl_loss(self, idx, user_view1,user_view2,item_view1,item_view2):
         u_idx = torch.unique(torch.Tensor(idx[0]).type(torch.long)).cuda()
         i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
-        user_cl_loss = InfoNCE(user_view1[u_idx], user_view2[u_idx], self.temp)
-        item_cl_loss = InfoNCE(item_view1[i_idx], item_view2[i_idx], self.temp)
+        user_cl_loss = InfoNCE(user_view1[u_idx], user_view2[u_idx], self.config['model_config']['tau'])
+        item_cl_loss = InfoNCE(item_view1[i_idx], item_view2[i_idx], self.config['model_config']['tau'])
         return user_cl_loss + item_cl_loss
 
 
