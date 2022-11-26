@@ -44,28 +44,3 @@ class FileIO(object):
                     test_data.append(seq[-1]) # 最后一项当作测试数据集
                 data = (training_data, test_data) # 这里是做一个合并为数据集的操作
         return data
-
-    @staticmethod
-    def load_user_list(file):
-        user_list = []
-        print('loading user List...')
-        with open(file) as f:
-            for line in f:
-                user_list.append(line.strip().split()[0])
-        return user_list
-
-    @staticmethod
-    def load_social_data(file):
-        social_data = []
-        print('loading social data...')
-        with open(file) as f:
-            for line in f:
-                items = split(' ', line.strip())
-                user1 = items[0]
-                user2 = items[1]
-                if len(items) < 3:
-                    weight = 1
-                else:
-                    weight = float(items[2])
-                social_data.append([user1, user2, weight])
-        return social_data

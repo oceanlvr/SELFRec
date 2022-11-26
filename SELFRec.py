@@ -1,33 +1,34 @@
 from data.loader import FileIO
-
+from util.helper import composePath
 
 class SELFRec(object):
     def __init__(self, config):
-        self.social_data = []
+        self.config = config
+        # 图模型模型
         self.training_data = []
         self.test_data = []
-        self.feature_data = []
-        self.config = config
-        self.kwargs = {}
-
-        if config['model.type'] == 'sequential':
-            # 序列模型
-            self.training_data, self.test_data = FileIO.load_data_set(config['sequence.data'], config['model.type'])
-        else:
-            # 图模型模型
-            self.training_data = FileIO.load_data_set(config['training.set'], config['model.type'])
-            self.test_data = FileIO.load_data_set(config['test.set'], config['model.type'])
-
-        if config.contain('social.data'):
-            social_data = FileIO.load_social_data(self.config['social.data'])
-            self.kwargs['social.data'] = social_data
-        # if config.contains('feature.data'):
-        #     self.social_data = FileIO.loadFeature(config,self.config['feature.data'])
+        self.load_dataset()
         print('Reading data and preprocessing...')
 
     def execute(self):
         # import the model module
-        import_str = 'from model.'+ self.config['model.type'] +'.' + self.config['model.name'] + ' import ' + self.config['model.name']
+        import_str = 'from model.' + self.config['type'] + '.' + \
+            self.config['name'] + ' import ' + self.config['name']
         exec(import_str)
-        recommender = self.config['model.name'] + '(self.config,self.training_data,self.test_data,**self.kwargs)'
+        recommender = self.config['name'] + \
+            '(self.config,self.training_data,self.test_data)'
         eval(recommender).execute()
+
+    def load_dataset(self):
+        train_data_path = composePath(
+            './dataset', self.config['dataset'], 'train.txt')
+        test_data_path = composePath(
+            './dataset', self.config['dataset'], 'test.txt')
+        self.training_data = FileIO.load_data_set(
+            train_data_path,
+            self.config['type']
+        )
+        self.test_data = FileIO.load_data_set(
+            test_data_path,
+            self.config['type']
+        )

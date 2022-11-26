@@ -4,7 +4,7 @@ import scipy.sparse as sp
 class Graph(object):
     def __init__(self):
         pass
-    # D^(-1/2)*A*D^(-1/2) 是图邻接矩阵A的normaliztion表示。
+    # D^(-1/2)·A·D^(-1/2) 是图邻接矩阵A的normaliztion表示。
     # 图的正则化矩阵
     # 理论基础是 https://blog.csdn.net/mzy20010420/article/details/127557236
     @staticmethod

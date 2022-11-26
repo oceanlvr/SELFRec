@@ -6,7 +6,7 @@ from data.loader import FileIO
 from os.path import abspath
 from util.evaluation import ranking_evaluation
 import sys
-
+import wandb
 
 class GraphRecommender(Recommender):
     def __init__(self, conf, training_set, test_set, **kwargs):
@@ -14,9 +14,6 @@ class GraphRecommender(Recommender):
         # 这里是初始化数据集相关的东西包括 user 和 item 总数量，ui_adj norm_adj 矩阵等
         self.data = Interaction(conf, training_set, test_set)
         self.bestPerformance = []
-        top = self.ranking['-topN'].split(',')
-        self.topN = [int(num) for num in top]
-        self.max_N = max(self.topN)
 
     def print_model_info(self):
         super(GraphRecommender, self).print_model_info()
@@ -51,7 +48,7 @@ class GraphRecommender(Recommender):
             rated_list, li = self.data.user_rated(user)
             for item in rated_list:
                 candidates[self.data.item[item]] = -10e8
-            ids, scores = find_k_largest(self.max_N, candidates)
+            ids, scores = find_k_largest(max(self.config['ranking']), candidates) #WIP
             item_names = [self.data.id2item[iid] for iid in ids]
             rec_list[user] = list(zip(item_names, scores))
             if i % 1000 == 0:
@@ -72,21 +69,20 @@ class GraphRecommender(Recommender):
             self.recOutput.append(line)
         current_time = strftime("%Y-%m-%d %H-%M-%S", localtime(time()))
         # output prediction result
-        out_dir = self.output['-dir']
-        file_name = self.config['model.name'] + '@' + current_time + '-top-' + str(self.max_N) + 'items' + '.txt'
+        out_dir = self.config['output']
+        file_name = self.config['name'] + '@' + current_time + '-top-' + str(max(self.config['ranking'])) + 'items' + '.txt' # 
         FileIO.write_file(out_dir, file_name, self.recOutput)
         print('The result has been output to ', abspath(out_dir), '.')
-        file_name = self.config['model.name'] + '@' + current_time + '-performance' + '.txt'
-        self.result = ranking_evaluation(self.data.test_set, rec_list, self.topN)
-        self.model_log.add('###Evaluation Results###')
-        self.model_log.add(self.result)
+        file_name = self.config['name'] + '@' + current_time + '-performance' + '.txt'
+        self.result = ranking_evaluation(self.data.test_set, rec_list, [int(num) for num in self.config['ranking']])
+        wandb.log({ finnal_result: self.result })
         FileIO.write_file(out_dir, file_name, self.result)
-        print('The result of %s:\n%s' % (self.model_name, ''.join(self.result)))
+        print('The result of %s:\n%s' % (self.config['name'], ''.join(self.result)))
 
     def fast_evaluation(self, epoch):
         print('evaluating the model...')
         rec_list = self.test()
-        measure = ranking_evaluation(self.data.test_set, rec_list, [self.max_N])
+        measure = ranking_evaluation(self.data.test_set, rec_list, [max(self.config['ranking'])])
         if len(self.bestPerformance) > 0:
             count = 0
             performance = {}
@@ -111,18 +107,23 @@ class GraphRecommender(Recommender):
                 self.bestPerformance.append(performance)
             self.save()
         print('-' * 120)
-        print('Real-Time Ranking Performance ' + ' (Top-' + str(self.max_N) + ' Item Recommendation)')
+        print('Real-Time Ranking Performance ' + ' (Top-' + str(max(self.config['ranking'])) + ' Item Recommendation)')
         measure = [m.strip() for m in measure[1:]]
         print('*Current Performance*')
         print('Epoch:', str(epoch + 1) + ',', ' | '.join(measure))
         bp = ''
-        # for k in self.bestPerformance[1]:
-        #     bp+=k+':'+str(self.bestPerformance[1][k])+' | '
         bp += 'Hit Ratio' + ':' + str(self.bestPerformance[1]['Hit Ratio']) + ' | '
         bp += 'Precision' + ':' + str(self.bestPerformance[1]['Precision']) + ' | '
         bp += 'Recall' + ':' + str(self.bestPerformance[1]['Recall']) + ' | '
-        # bp += 'F1' + ':' + str(self.bestPerformance[1]['F1']) + ' | '
         bp += 'MDCG' + ':' + str(self.bestPerformance[1]['NDCG'])
+        wandb.log({ 
+            'hit_ratio': self.bestPerformance[1]['Hit Ratio'],
+            'precision': self.bestPerformance[1]['Precision'],
+            'recall': self.bestPerformance[1]['Recall'],
+            'MDCG': self.bestPerformance[1]['NDCG'],
+            'epoch': self.bestPerformance[0],
+        })
+
         print('*Best Performance* ')
         print('Epoch:', str(self.bestPerformance[0]) + ',', bp)
         print('-' * 120)

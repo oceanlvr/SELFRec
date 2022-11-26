@@ -1,8 +1,8 @@
 import torch
+import wandb
 import torch.nn as nn
 import torch.nn.functional as F
 from base.graph_recommender import GraphRecommender
-from util.conf import OptionConf
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
@@ -13,37 +13,40 @@ from data.augmentor import GraphAugmentor
 
 class SGL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
+        # config data 
         super(SGL, self).__init__(conf, training_set, test_set)
-        args = OptionConf(self.config['SGL'])
-        self.cl_rate = float(args['-lambda'])
-        self.aug_type = int(args['-augtype']) # 增广类型，这里居然是固定的QAQ？ 那可以不可以随机叻 随机droupout会怎么样
-        drop_rate = float(args['-droprate'])
-        n_layers = int(args['-n_layer'])
-        temp = float(args['-temp']) # 温度
-        self.model = SGL_Encoder(self.data, self.emb_size, drop_rate, n_layers, temp, self.aug_type)
+        self.model = SGL_Encoder(
+            self.data,
+            self.config['embbedding_size'],
+            self.config['model_config']['droprate'],
+            self.config['model_config']['num_layers'],
+            self.config['model_config']['temperature'],
+            self.config['model_config']['augtype'],
+        )
 
     def train(self):
         model = self.model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lRate)
-        for epoch in range(self.maxEpoch):
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.config['learning_rate'])
+        for epoch in range(self.config['num_epochs']):
             dropped_adj1 = model.graph_reconstruction()
             dropped_adj2 = model.graph_reconstruction()
-            for index, batch in enumerate(next_batch_pairwise(self.data, self.batch_size)):
-                user_idx, pos_idx, neg_idx = batch
+            for index, batch in enumerate(next_batch_pairwise(self.data, self.config['batch_size'])):
+                user_idx, pos_idx, neg_idx = batch # neg_idx 是在当前 user 没有交互过的item
                 rec_user_emb, rec_item_emb = model()
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
                 # 有三部分 Loss。推荐系统BPR损失 对比学习损失 L2正则损失
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
 
-                cl_loss = self.cl_rate * model.cal_cl_loss([user_idx,pos_idx],dropped_adj1,dropped_adj2)
+                cl_loss = self.config['learning_rate'] * model.cal_cl_loss([user_idx,pos_idx],dropped_adj1,dropped_adj2)
                 # FIXME: 这里是否缺少了参数 lambda???
-                l2_loss = l2_reg_loss(self.reg, user_emb, pos_item_emb,neg_item_emb) 
+                l2_loss = l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) 
                 batch_loss = rec_loss + l2_loss + cl_loss
 
                 # Backward and optimize
                 optimizer.zero_grad()
                 batch_loss.backward()
                 optimizer.step()
+                wandb.log({'epoch':epoch+1,'batch_loss': batch_loss.item(),'rec_loss':rec_loss.item(),'cl_loss': cl_loss.item()})
                 if index % 100 == 0:
                     print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'cl_loss', cl_loss.item())
             with torch.no_grad():
@@ -109,7 +112,7 @@ class SGL_Encoder(nn.Module):
         # WARNING: 这个部分请参考 LightGCN 的实现，是完全对应上的！
         # self.embedding_dict['user_emb'] 是n*D的
         # self.embedding_dict['item_emb'] 是m*D的
-        # 大小是 (n+m)*D 这里相当于是没有带A的纯特征矩阵。
+        # 大小是 (n+m)*D 这里相当于是没有带A的纯特征矩阵R。
         ego_embeddings = torch.cat([self.embedding_dict['user_emb'], self.embedding_dict['item_emb']], 0)
         all_embeddings = [ego_embeddings] # 包含k层GNN的embedding
         for k in range(self.n_layers):
@@ -126,7 +129,7 @@ class SGL_Encoder(nn.Module):
                 ego_embeddings = torch.sparse.mm(self.sparse_norm_adj, ego_embeddings)
             all_embeddings.append(ego_embeddings)
         # 拼接向量 all_embeddings size k 个 (n,n) 其中k是卷积网络的层数，n是用户数+物品数
-        # 这里请看论文
+        # 这里请看论文 这里是取了 1/1+L
         all_embeddings = torch.stack(all_embeddings, dim=1) # https://zhuanlan.zhihu.com/p/354177500
         all_embeddings = torch.mean(all_embeddings, dim=1) # n*k*n
         user_all_embeddings, item_all_embeddings = torch.split(all_embeddings, [self.data.user_num, self.data.item_num])
@@ -137,9 +140,9 @@ class SGL_Encoder(nn.Module):
         i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
         user_view_1, item_view_1 = self.forward(perturbed_mat1)
         user_view_2, item_view_2 = self.forward(perturbed_mat2)
-        view1 = torch.cat((user_view_1[u_idx],item_view_1[i_idx]),0)
-        view2 = torch.cat((user_view_2[u_idx],item_view_2[i_idx]),0)
+        view1 = torch.cat((user_view_1[u_idx], item_view_1[i_idx]), 0)
+        view2 = torch.cat((user_view_2[u_idx], item_view_2[i_idx]), 0)
         # user_cl_loss = InfoNCE(user_view_1[u_idx], user_view_2[u_idx], self.temp)
         # item_cl_loss = InfoNCE(item_view_1[i_idx], item_view_2[i_idx], self.temp)
         #return user_cl_loss + item_cl_loss
-        return InfoNCE(view1, view2, self.temp)
+        return InfoNCE(view1, view2, self.temp) # 这里是图级别的对比

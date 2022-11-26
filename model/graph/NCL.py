@@ -7,26 +7,23 @@ from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
 import faiss
-# paper: Improving Graph Collaborative Filtering with Neighborhood-enriched Contrastive Learning. WWW'22
+import wandb
 
+# paper: Improving Graph Collaborative Filtering with Neighborhood-enriched Contrastive Learning. WWW'22
 
 class NCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
         super(NCL, self).__init__(conf, training_set, test_set)
-        args = OptionConf(self.config['NCL'])
-        self.n_layers = int(args['-n_layer'])
-        self.ssl_temp = float(args['-tau'])
-        self.ssl_reg = float(args['-ssl_reg'])
-        self.hyper_layers = int(args['-hyper_layers'])
-        self.alpha = float(args['-alpha'])
-        self.proto_reg = float(args['-proto_reg'])
-        self.k = int(args['-num_clusters'])
-        self.model = LGCN_Encoder(self.data, self.emb_size, self.n_layers)
+        self.model = LGCN_Encoder(
+            self.data,
+            self.config['embbedding_size'],
+            self.config['model_config']['num_layers']
+        )
         self.user_centroids = None
         self.user_2cluster = None
         self.item_centroids = None
         self.item_2cluster = None
-
+    # e-step  
     def e_step(self):
         user_embeddings = self.model.embedding_dict['user_emb'].detach().cpu().numpy()
         item_embeddings = self.model.embedding_dict['item_emb'].detach().cpu().numpy()
@@ -35,7 +32,11 @@ class NCL(GraphRecommender):
 
     def run_kmeans(self, x):
         """Run K-means algorithm to get k clusters of the input tensor x        """
-        kmeans = faiss.Kmeans(d=self.emb_size, k=self.k, gpu=True)
+        kmeans = faiss.Kmeans(
+            d=self.config['embbedding_size'],
+            k=self.config['model_config']['num_clusters'],
+            gpu=True
+        )
         kmeans.train(x)
         cluster_cents = kmeans.centroids
         _, I = kmeans.index.search(x, 1)
@@ -48,13 +49,16 @@ class NCL(GraphRecommender):
         user_emb, item_emb = torch.split(initial_emb, [self.data.user_num, self.data.item_num])
         user2cluster = self.user_2cluster[user_idx]
         user2centroids = self.user_centroids[user2cluster]
-        proto_nce_loss_user = InfoNCE(user_emb[user_idx],user2centroids,self.ssl_temp) * self.batch_size
+        proto_nce_loss_user = InfoNCE(user_emb[user_idx], user2centroids, self.config['model_config']['tau']) * self.config['batch_size']
         item2cluster = self.item_2cluster[item_idx]
         item2centroids = self.item_centroids[item2cluster]
-        proto_nce_loss_item = InfoNCE(item_emb[item_idx],item2centroids,self.ssl_temp) * self.batch_size
-        proto_nce_loss = self.proto_reg * (proto_nce_loss_user + proto_nce_loss_item)
+        proto_nce_loss_item = InfoNCE(item_emb[item_idx], item2centroids, self.config['model_config']['tau']) * self.config['batch_size']
+        # 注意这里 proto_nce_loss_item 前面没有去加这个 alpha 系数
+        proto_nce_loss = self.config['model_config']['proto_reg'] * (proto_nce_loss_user + proto_nce_loss_item)
         return proto_nce_loss
 
+    # 结构位置对比损失
+    # https://github.com/RUCAIBox/NCL/issues/10
     def ssl_layer_loss(self, context_emb, initial_emb, user, item):
         context_user_emb_all, context_item_emb_all = torch.split(context_emb, [self.data.user_num, self.data.item_num])
         initial_user_emb_all, initial_item_emb_all = torch.split(initial_emb, [self.data.user_num, self.data.item_num])
@@ -65,8 +69,8 @@ class NCL(GraphRecommender):
         norm_all_user_emb = F.normalize(initial_user_emb_all)
         pos_score_user = torch.mul(norm_user_emb1, norm_user_emb2).sum(dim=1)
         ttl_score_user = torch.matmul(norm_user_emb1, norm_all_user_emb.transpose(0, 1))
-        pos_score_user = torch.exp(pos_score_user / self.ssl_temp)
-        ttl_score_user = torch.exp(ttl_score_user / self.ssl_temp).sum(dim=1)
+        pos_score_user = torch.exp(pos_score_user / self.config['model_config']['tau'])
+        ttl_score_user = torch.exp(ttl_score_user / self.config['model_config']['tau']).sum(dim=1)
         ssl_loss_user = -torch.log(pos_score_user / ttl_score_user).sum()
 
         context_item_emb = context_item_emb_all[item]
@@ -76,46 +80,58 @@ class NCL(GraphRecommender):
         norm_all_item_emb = F.normalize(initial_item_emb_all)
         pos_score_item = torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
         ttl_score_item = torch.matmul(norm_item_emb1, norm_all_item_emb.transpose(0, 1))
-        pos_score_item = torch.exp(pos_score_item / self.ssl_temp)
-        ttl_score_item = torch.exp(ttl_score_item / self.ssl_temp).sum(dim=1)
+        pos_score_item = torch.exp(pos_score_item / self.config['model_config']['tau'])
+        ttl_score_item = torch.exp(ttl_score_item / self.config['model_config']['tau']).sum(dim=1)
         ssl_loss_item = -torch.log(pos_score_item / ttl_score_item).sum()
-
-        ssl_loss = self.ssl_reg * (ssl_loss_user + self.alpha * ssl_loss_item)
-        return ssl_loss
+        pos_loss = self.config['model_config']['ssl_reg'] * (ssl_loss_user + self.config['model_config']['alpha'] * ssl_loss_item)
+        return pos_loss
 
     def train(self):
         model = self.model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lRate)
-        for epoch in range(self.maxEpoch):
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.config['learning_rate'])
+        for epoch in range(self.config['num_epochs']):
             if epoch >= 20:
+                # 大于20轮才开始做e-step
                 self.e_step()
-            for n, batch in enumerate(next_batch_pairwise(self.data, self.batch_size)):
+            for index, batch in enumerate(next_batch_pairwise(self.data, self.config['batch_size'])):
                 user_idx, pos_idx, neg_idx = batch
-                model.train()
-                rec_user_emb, rec_item_emb, emb_list  = model()
-                user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
-                rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
-                initial_emb = emb_list[0]
-                context_emb = emb_list[self.hyper_layers*2]
-                ssl_loss = self.ssl_layer_loss(context_emb,initial_emb,user_idx,pos_idx)
-                warm_up_loss = rec_loss + l2_reg_loss(self.reg, user_emb, pos_item_emb, neg_item_emb)/self.batch_size  + ssl_loss
 
-                if epoch<20: #warm_up
-                    optimizer.zero_grad()
-                    warm_up_loss.backward()
-                    optimizer.step()
-                    if n % 100 == 0:
-                        print('training:', epoch + 1, 'batch', n, 'rec_loss:', rec_loss.item(), 'ssl_loss', ssl_loss.item())
+                # brp 损失 LGCN 部分 emb_list 是 all_emb
+                rec_user_emb, rec_item_emb, emb_list = model()
+                user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
+                rec_bpr_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
+                
+                # 第一层初始的 GNN emb
+                initial_emb = emb_list[0]
+                # 第 2*N 层 GNN emb
+                context_emb = emb_list[self.config['model_config']['hyper_layers']*2]
+                # 这部分是layer位置的对比损失
+                pos_loss = self.ssl_layer_loss(context_emb, initial_emb, user_idx,pos_idx)
+
+                # 推荐的brp损失+l2损失
+                rec_loss = rec_bpr_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
+
+                if epoch < 20: #warm_up
+                    cl_loss = pos_loss
                 else:
-                    # Backward and optimize
+                    # 这部分是原型的对比损失
                     proto_loss = self.ProtoNCE_loss(initial_emb, user_idx, pos_idx)
-                    batch_loss = rec_loss + l2_reg_loss(self.reg, user_emb, pos_item_emb, neg_item_emb) / self.batch_size + ssl_loss + proto_loss
-                    optimizer.zero_grad()
-                    batch_loss.backward()
-                    optimizer.step()
-                    if n % 100==0:
-                        print('training:', epoch + 1, 'batch', n, 'rec_loss:', rec_loss.item(), 'ssl_loss', ssl_loss.item(), 'proto_loss', proto_loss.item())
-            model.eval()
+                    cl_loss = proto_loss + pos_loss
+                batch_loss = rec_loss + cl_loss
+                optimizer.zero_grad()
+                batch_loss.backward()
+                optimizer.step()
+                wandb.log({
+                    'epoch': epoch + 1,
+                    'batch_loss': batch_loss.item(),
+                    'rec_loss': rec_loss.item(),
+                    'cl_loss': cl_loss.item(),
+                    'proto_loss': proto_loss.item(),
+                    'pos_loss': pos_loss.item()
+                })
+
+                if index % 100==0:
+                    print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'pos_loss', pos_loss.item(), 'proto_loss', proto_loss.item())
             with torch.no_grad():
                 self.user_emb, self.item_emb, _ = model()
             self.fast_evaluation(epoch)

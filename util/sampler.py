@@ -1,10 +1,13 @@
 from random import shuffle,randint,choice
 
+# pairwise方法 https://zhuanlan.zhihu.com/p/111636490 区别
 
+# yield 返回的是 user_idx, pos_idx, neg_idx = batch
+# 这里返回的是一个当前user下的iterm和非当前user下的item 即为pairwise方法
 def next_batch_pairwise(data,batch_size,n_negs=1):
     training_data = data.training_data
     shuffle(training_data)
-    batch_id = 0
+    batch_id = 0 # 闭区间
     data_size = len(training_data)
     while batch_id < data_size:
         if batch_id + batch_size <= data_size:
