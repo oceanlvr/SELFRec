@@ -13,11 +13,11 @@ iFashion:
   output: ./results/
   # SGL config
   model_config:
-    num_layers: 2
-    lambda: 0.1
     droprate: 0.1
     augtype: 1
     temperature: 0.2
+    num_layers: 2
+    lambda: 0.1
 
 yelp2018:
   name: SGL
@@ -34,8 +34,8 @@ yelp2018:
   output: ./results/
   # SGL config
   model_config:
-    num_layers: 2
-    lambda: 0.1
     droprate: 0.1
     augtype: 1
     temperature: 0.2
+    num_layers: 2
+    lambda: 0.1

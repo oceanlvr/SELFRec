@@ -219,5 +219,11 @@ If you find this repo helpful to your research, please cite our paper.
 ## RUN
 
 ```shell
-nohup python index.py --gpu_id=0 --run_name SGL_aug1 --model=SGL --tags psLab baseline aug1 -m augtype=1 --notes "test notes" >> ./3.log 2>&1
+nohup python index.py --gpu_id=0 --model=SGL --dataset=iFashion -m augtype=0 --tags psLab > ./0.log 2>&1 &
+
+nohup python index.py --gpu_id=1 --model=SGL --dataset=iFashion -m augtype=1 --tags psLab > ./1.log 2>&1 &
+
+nohup python index.py --gpu_id=2 --model=SGL --dataset=yelp2018 -m augtype=0 --tags psLab > ./2.log 2>&1 &
+
+nohup python index.py --gpu_id=3 --model=SGL --dataset=yelp2018 -m augtype=1 --tags psLab > ./3.log 2>&1 &
 ```

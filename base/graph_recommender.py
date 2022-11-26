@@ -120,7 +120,7 @@ class GraphRecommender(Recommender):
             'hit_ratio': self.bestPerformance[1]['Hit Ratio'],
             'precision': self.bestPerformance[1]['Precision'],
             'recall': self.bestPerformance[1]['Recall'],
-            'MDCG': self.bestPerformance[1]['NDCG'],
+            'NDCG': self.bestPerformance[1]['NDCG'],
             'epoch': self.bestPerformance[0],
         })
 
