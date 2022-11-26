@@ -227,3 +227,10 @@ nohup python index.py --gpu_id=2 --model=SGL --dataset=yelp2018 -m augtype=0 --t
 
 nohup python index.py --gpu_id=3 --model=SGL --dataset=yelp2018 -m augtype=1 --tags psLab > ./3.log 2>&1 &
 ```
+
+Sweep
+
+```shell
+wandb sweep --project sweep_gclrec sweep.yaml
+wandb agent oceanlvr/sweep_gclrec/xxx
+```
