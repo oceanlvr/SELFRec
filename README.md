@@ -214,3 +214,10 @@ If you find this repo helpful to your research, please cite our paper.
   year={2022}
 }
 ```
+
+
+## RUN
+
+```shell
+nohup python index.py --gpu_id=0 --run_name SGL_aug1 --model=SGL --tags psLab baseline aug1 -m augtype=1 --notes "test notes" >> ./3.log 2>&1
+```

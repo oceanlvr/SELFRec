@@ -20,6 +20,3 @@ yelp2018:
     hyper_layers: 1
     alpha: 1.5
     num_clusters: 2000
-
-
-
