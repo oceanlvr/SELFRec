@@ -111,12 +111,12 @@ class NCL(GraphRecommender):
                 # 推荐的brp损失+l2损失
                 rec_loss = rec_bpr_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
 
-                if epoch < 20: #warm_up
-                    cl_loss = pos_loss
-                else:
-                    # 这部分是原型的对比损失
+                # 原型损失
+                proto_loss = torch.zeros_like(pos_loss)
+                if epoch >= 20: #warm_up
                     proto_loss = self.ProtoNCE_loss(initial_emb, user_idx, pos_idx)
-                    cl_loss = proto_loss + pos_loss
+                    
+                cl_loss = proto_loss + pos_loss
                 batch_loss = rec_loss + cl_loss
                 optimizer.zero_grad()
                 batch_loss.backward()
