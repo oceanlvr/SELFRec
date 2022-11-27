@@ -2,6 +2,7 @@
 program: /workspace/index.py
 method: bayes
 name: SGL-yelp2018
+run_cap: 500
 command:
   - ${env}
   - ${interpreter}
