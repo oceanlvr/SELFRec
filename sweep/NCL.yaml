@@ -1,7 +1,7 @@
 # config.yaml
 program: /workspace/index.py
 method: bayes
-name: sweep
+name: NCL-yelp2018
 run_cap: 500
 command:
   - ${env}

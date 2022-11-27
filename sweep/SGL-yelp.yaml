@@ -1,7 +1,7 @@
 # config.yaml
 program: /workspace/index.py
 method: bayes
-name: sweep
+name: SGL-yelp2018
 command:
   - ${env}
   - ${interpreter}
