@@ -6,7 +6,28 @@ yelp2018:
     - 10
     - 20
   embbedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config:
+    num_layers: 2
+    layer_cl: 1
+    lambda: 0.2
+    eps: 0.2
+    tau: 0.15
+
+iFashion:
+  name: NCL
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+  embbedding_size: 64
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001

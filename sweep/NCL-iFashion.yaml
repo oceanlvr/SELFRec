@@ -18,29 +18,23 @@ metric:
   goal: maximize
   name: target
 parameters:
-  embbedding_size: 
-    values: [16, 32, 64]
-  batch_size: 
-    values: [16,32,64]
-  learning_rate:
-    min: 0.0001
-    max: 0.01
-  lambda: 
-    max: 0.01
-    min: 0.0001
-  batch_size: 
-    values: [512, 1024, 2048]
-  model_config.ssl_reg:
-    max: 0.001
-    min: 0.000001
-  model_config.proto_reg: 
+  model_config.num_layers:
+    values: [2, 3, 4]
+  model_config.hyper_layers: 
+    values: [1] #
+  model_config.ssl_reg: 
     max: 0.0001
-    min: 0.0000001
+    min: 0.0000005
+  model_config.proto_reg: 
+    max: 0.001
+    min: 0.00000005
   model_config.temperature: 
-    max: 0.9
-    min: 0.05
-  model_config.lambda: 
-    max: 0.5
-    min: 0.05
+    max: 0.1
+    min: 0.001
+  model_config.alpha: 
+    max: 1.5
+    min: 0.15
   model_config.num_clusters: 
-    values: [1000,1500,2000]
+    values: [500, 1000,1500,2000]
+
+# ayer=3, ssl_reg=1e-6, proto_reg=1e-7, tau=0.05, hyper_layers=1, alpha=1.5, num_clusters=2000

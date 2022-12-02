@@ -1,4 +1,4 @@
-iFashion:
+yelp2018:
   name: SGL
   seed: 12345
   type: graph
@@ -6,7 +6,7 @@ iFashion:
     - 10
     - 20
   embbedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
@@ -19,7 +19,7 @@ iFashion:
     num_layers: 2
     lambda: 0.1
 
-yelp2018:
+iFashion:
   name: SGL
   seed: 12345
   type: graph
