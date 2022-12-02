@@ -2,7 +2,7 @@ from SELFRec import SELFRec
 import yaml
 from yaml import SafeLoader
 import wandb
-from util.helper import fix_random_seed, composePath, ParseKwargs, mergeDict, splitNested
+from util.helper import fix_random_seed, composePath, mergeDict
 import argparse
 
 if __name__ == '__main__':
@@ -21,9 +21,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--learning_rate', type=float)
     parser.add_argument('--lambda', type=float)
-    # model_config args
-    parser.add_argument('-x', '-m', '--model_config', nargs='*',
-                        action=ParseKwargs, help="-m num_layers=1 alpha=2", default={})
     # template SGL
     parser.add_argument('--model_config.droprate', type=float)
     parser.add_argument('--model_config.augtype', type=int)
@@ -43,8 +40,7 @@ if __name__ == '__main__':
     graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR',
                     'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF']
     sequential_models = []
-    args = parser.parse_args()
-    args = splitNested(vars(args))
+    args = vars(parser.parse_args())
 
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]

@@ -17,7 +17,7 @@ class NCL(GraphRecommender):
         self.model = LGCN_Encoder(
             self.data,
             self.config['embbedding_size'],
-            self.config['model_config']['num_layers']
+            self.config['model_config.num_layers']
         )
         self.user_centroids = None
         self.user_2cluster = None
@@ -34,7 +34,7 @@ class NCL(GraphRecommender):
         """Run K-means algorithm to get k clusters of the input tensor x        """
         kmeans = faiss.Kmeans(
             d=self.config['embbedding_size'],
-            k=self.config['model_config']['num_clusters'],
+            k=self.config['model_config.num_clusters'],
             gpu=True
         )
         kmeans.train(x)
@@ -49,12 +49,12 @@ class NCL(GraphRecommender):
         user_emb, item_emb = torch.split(initial_emb, [self.data.user_num, self.data.item_num])
         user2cluster = self.user_2cluster[user_idx]
         user2centroids = self.user_centroids[user2cluster]
-        proto_nce_loss_user = InfoNCE(user_emb[user_idx], user2centroids, self.config['model_config']['temperature']) * self.config['batch_size']
+        proto_nce_loss_user = InfoNCE(user_emb[user_idx], user2centroids, self.config['model_config.temperature']) * self.config['batch_size']
         item2cluster = self.item_2cluster[item_idx]
         item2centroids = self.item_centroids[item2cluster]
-        proto_nce_loss_item = InfoNCE(item_emb[item_idx], item2centroids, self.config['model_config']['temperature']) * self.config['batch_size']
+        proto_nce_loss_item = InfoNCE(item_emb[item_idx], item2centroids, self.config['model_config.temperature']) * self.config['batch_size']
         # 注意这里 proto_nce_loss_item 前面没有去加这个 alpha 系数
-        proto_nce_loss = self.config['model_config']['proto_reg'] * (proto_nce_loss_user + proto_nce_loss_item)
+        proto_nce_loss = self.config['model_config.proto_reg'] * (proto_nce_loss_user + proto_nce_loss_item)
         return proto_nce_loss
 
     # 结构位置对比损失
@@ -69,8 +69,8 @@ class NCL(GraphRecommender):
         norm_all_user_emb = F.normalize(initial_user_emb_all)
         pos_score_user = torch.mul(norm_user_emb1, norm_user_emb2).sum(dim=1)
         ttl_score_user = torch.matmul(norm_user_emb1, norm_all_user_emb.transpose(0, 1))
-        pos_score_user = torch.exp(pos_score_user / self.config['model_config']['temperature'])
-        ttl_score_user = torch.exp(ttl_score_user / self.config['model_config']['temperature']).sum(dim=1)
+        pos_score_user = torch.exp(pos_score_user / self.config['model_config.temperature'])
+        ttl_score_user = torch.exp(ttl_score_user / self.config['model_config.temperature']).sum(dim=1)
         ssl_loss_user = -torch.log(pos_score_user / ttl_score_user).sum()
 
         context_item_emb = context_item_emb_all[item]
@@ -80,10 +80,10 @@ class NCL(GraphRecommender):
         norm_all_item_emb = F.normalize(initial_item_emb_all)
         pos_score_item = torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
         ttl_score_item = torch.matmul(norm_item_emb1, norm_all_item_emb.transpose(0, 1))
-        pos_score_item = torch.exp(pos_score_item / self.config['model_config']['temperature'])
-        ttl_score_item = torch.exp(ttl_score_item / self.config['model_config']['temperature']).sum(dim=1)
+        pos_score_item = torch.exp(pos_score_item / self.config['model_config.temperature'])
+        ttl_score_item = torch.exp(ttl_score_item / self.config['model_config.temperature']).sum(dim=1)
         ssl_loss_item = -torch.log(pos_score_item / ttl_score_item).sum()
-        pos_loss = self.config['model_config']['ssl_reg'] * (ssl_loss_user + self.config['model_config']['alpha'] * ssl_loss_item)
+        pos_loss = self.config['model_config.ssl_reg'] * (ssl_loss_user + self.config['model_config.alpha'] * ssl_loss_item)
         return pos_loss
 
     def train(self):
@@ -104,7 +104,7 @@ class NCL(GraphRecommender):
                 # 第一层初始的 GNN emb
                 initial_emb = emb_list[0]
                 # 第 2*N 层 GNN emb
-                context_emb = emb_list[self.config['model_config']['hyper_layers']*2]
+                context_emb = emb_list[self.config['model_config.hyper_layers']*2]
                 # 这部分是layer位置的对比损失
                 pos_loss = self.ssl_layer_loss(context_emb, initial_emb, user_idx,pos_idx)
 

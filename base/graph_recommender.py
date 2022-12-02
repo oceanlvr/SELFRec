@@ -6,6 +6,7 @@ from data.loader import FileIO
 from os.path import abspath
 from util.evaluation import ranking_evaluation
 import sys
+from picture.feature import plot_features
 import wandb
 
 class GraphRecommender(Recommender):
@@ -79,6 +80,15 @@ class GraphRecommender(Recommender):
         FileIO.write_file(out_dir, file_name, self.result)
         print('The result of %s:\n%s' % (self.config['name'], ''.join(self.result)))
 
+    def drawPicture(self, emb, epoch):
+        plot_features(emb, 'epoch:' + str(epoch) + ' ' + self.config['name'])
+
+    def addBestPerformance(self, performance, key, value):
+        performance[key] = value
+    
+    def addUserEmbedding(self, performance):
+        self.addBestPerformance(performance, 'user_emb', self.user_emb.cpu())
+
     def fast_evaluation(self, epoch):
         print('evaluating the model...')
         rec_list = self.test()
@@ -94,18 +104,21 @@ class GraphRecommender(Recommender):
                     count += 1
                 else:
                     count -= 1
-            if count < 0:
-                self.bestPerformance[1] = performance
+            if count < 0: # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
                 self.bestPerformance[0] = epoch + 1
+                self.addUserEmbedding(performance)
+                self.bestPerformance[1] = performance
                 self.save()
-        else:
+        else: # 没有最好的结果直接更新
             self.bestPerformance.append(epoch + 1)
             performance = {}
             for m in measure[1:]:
                 k, v = m.strip().split(':')
                 performance[k] = float(v)
-                self.bestPerformance.append(performance)
+            self.addUserEmbedding(performance)
+            self.bestPerformance.append(performance)
             self.save()
+        self.drawPicture(self.bestPerformance[1]['user_emb'], epoch)
         print('-' * 120)
         print('Real-Time Ranking Performance ' + ' (Top-' + str(max(self.config['ranking'])) + ' Item Recommendation)')
         measure = [m.strip() for m in measure[1:]]
@@ -126,6 +139,7 @@ class GraphRecommender(Recommender):
                 0.4*self.bestPerformance[1]['Recall']+
                 0.4*self.bestPerformance[1]['NDCG']
         })
+        # bestPerformance
 
         print('*Best Performance* ')
         print('Epoch:', str(self.bestPerformance[0]) + ',', bp)

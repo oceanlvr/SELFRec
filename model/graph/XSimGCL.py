@@ -16,9 +16,9 @@ class XSimGCL(GraphRecommender):
         self.model = XSimGCL_Encoder(
             self.data,
             self.config['embbedding_size'],
-            self.config['model_config']['eps'],
-            self.config['model_config']['num_layers'],
-            self.config['model_config']['layer_cl']
+            self.config['model_config.eps'],
+            self.config['model_config.num_layers'],
+            self.config['model_config.layer_cl']
         )
 
     def train(self):
@@ -30,7 +30,7 @@ class XSimGCL(GraphRecommender):
                 rec_user_emb, rec_item_emb, cl_user_emb, cl_item_emb  = model(True)
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
-                cl_loss = self.config['model_config']['lambda'] * self.cal_cl_loss([user_idx,pos_idx],rec_user_emb,cl_user_emb,rec_item_emb,cl_item_emb)
+                cl_loss = self.config['model_config.lambda'] * self.cal_cl_loss([user_idx,pos_idx],rec_user_emb,cl_user_emb,rec_item_emb,cl_item_emb)
                 batch_loss =  rec_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb) + cl_loss
                 # Backward and optimize
                 optimizer.zero_grad()
@@ -52,8 +52,8 @@ class XSimGCL(GraphRecommender):
     def cal_cl_loss(self, idx, user_view1,user_view2,item_view1,item_view2):
         u_idx = torch.unique(torch.Tensor(idx[0]).type(torch.long)).cuda()
         i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
-        user_cl_loss = InfoNCE(user_view1[u_idx], user_view2[u_idx], self.config['model_config']['tau'])
-        item_cl_loss = InfoNCE(item_view1[i_idx], item_view2[i_idx], self.config['model_config']['tau'])
+        user_cl_loss = InfoNCE(user_view1[u_idx], user_view2[u_idx], self.config['model_config.tau'])
+        item_cl_loss = InfoNCE(item_view1[i_idx], item_view2[i_idx], self.config['model_config.tau'])
         return user_cl_loss + item_cl_loss
 
 

@@ -12,14 +12,13 @@ yelp2018:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 2
-    hyper_layers: 1
-    ssl_reg: 0.000001
-    proto_reg: 0.0000001
-    temperature: 0.05
-    alpha: 1.5
-    num_clusters: 2000
+  model_config.num_layers: 3
+  model_config.hyper_layers: 1
+  model_config.ssl_reg: 0.000001
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.alpha: 1.5
+  model_config.num_clusters: 2000
 
 iFashion:
   name: NCL
@@ -29,17 +28,16 @@ iFashion:
     - 10
     - 20
   embbedding_size: 64
-  num_epochs: 120
+  num_epochs: 20
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 2
-    hyper_layers: 1
-    ssl_reg: 0.000001
-    proto_reg: 0.0000001
-    temperature: 0.05
-    alpha: 1.5
-    num_clusters: 2000
+  model_config.num_layers: 3
+  model_config.hyper_layers: 1
+  model_config.ssl_reg: 0.000001
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.alpha: 1.5
+  model_config.num_clusters: 2000

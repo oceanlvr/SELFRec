@@ -1,7 +1,6 @@
 import torch
 import wandb
 import torch.nn as nn
-import torch.nn.functional as F
 from base.graph_recommender import GraphRecommender
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
@@ -18,10 +17,10 @@ class SGL(GraphRecommender):
         self.model = SGL_Encoder(
             self.data,
             self.config['embbedding_size'],
-            self.config['model_config']['droprate'],
-            self.config['model_config']['num_layers'],
-            self.config['model_config']['temperature'],
-            self.config['model_config']['augtype'],
+            self.config['model_config.droprate'],
+            self.config['model_config.num_layers'],
+            self.config['model_config.temperature'],
+            self.config['model_config.augtype'],
         )
 
     def train(self):
@@ -51,7 +50,7 @@ class SGL(GraphRecommender):
                     print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'cl_loss', cl_loss.item())
             with torch.no_grad():
                 self.user_emb, self.item_emb = self.model()
-            if epoch>=5:
+            if epoch>=0:
                 self.fast_evaluation(epoch)
         self.user_emb, self.item_emb = self.best_user_emb, self.best_item_emb
     # 在 graph_recommender里面用到(fast_evaluation函数)
