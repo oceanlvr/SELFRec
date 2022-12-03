@@ -80,14 +80,15 @@ class GraphRecommender(Recommender):
         FileIO.write_file(out_dir, file_name, self.result)
         print('The result of %s:\n%s' % (self.config['name'], ''.join(self.result)))
 
-    def drawPicture(self, emb, epoch):
-        plot_features(emb, 'epoch:' + str(epoch) + ' ' + self.config['name'])
+    def drawPicture(self, emb):
+        plot_features(emb, self.config['name'])
 
     def addBestPerformance(self, performance, key, value):
         performance[key] = value
     
     def addUserEmbedding(self, performance):
-        self.addBestPerformance(performance, 'user_emb', self.user_emb.cpu())
+        self.addBestPerformance(performance, 'user_emb', self.model.embedding_dict['user_emb'].detach().cpu().numpy())
+        self.addBestPerformance(performance, 'item_emb', self.model.embedding_dict['item_emb'].detach().cpu().numpy())
 
     def fast_evaluation(self, epoch):
         print('evaluating the model...')
@@ -118,7 +119,6 @@ class GraphRecommender(Recommender):
             self.addUserEmbedding(performance)
             self.bestPerformance.append(performance)
             self.save()
-        self.drawPicture(self.bestPerformance[1]['user_emb'], epoch)
         print('-' * 120)
         print('Real-Time Ranking Performance ' + ' (Top-' + str(max(self.config['ranking'])) + ' Item Recommendation)')
         measure = [m.strip() for m in measure[1:]]
@@ -145,3 +145,6 @@ class GraphRecommender(Recommender):
         print('Epoch:', str(self.bestPerformance[0]) + ',', bp)
         print('-' * 120)
         return measure
+
+    def afterTrain(self):
+        self.drawPicture(self.bestPerformance[1]['user_emb'])

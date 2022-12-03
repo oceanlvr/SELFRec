@@ -4,10 +4,11 @@ import seaborn as sns
 from sklearn import manifold
 from sklearn.preprocessing import normalize
 import wandb
+from util.helper import composePath
 
 # dimensionality reduction
 def reduction_features(user_emb):
-    tsne = manifold.TSNE(n_components=2, init='pca', random_state=501)
+    tsne = manifold.TSNE(n_components=2, init='pca', random_state=12345, learning_rate='auto')
     user_emb_2d = tsne.fit_transform(user_emb)
     user_emb_2d = normalize(user_emb_2d, axis=1, norm='l2')
     return user_emb_2d
@@ -28,7 +29,8 @@ def plot_features(embs, name):
     angles = np.arctan2(y, x)
     sns.kdeplot(data=angles, bw=0.15, shade=True,
                 legend=True, ax=axs[1][0], color='green')
-    artifact = wandb.Artifact('feature', type='dataset')
-    sns.savefig(name)
+    artifact = wandb.Artifact('feature', type='picture')
+    path = composePath('.', name)
+    sns.savefig(path)
     artifact.add_file(name)
     wandb.log_artifact(artifact)

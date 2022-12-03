@@ -43,6 +43,9 @@ class Recommender(object):
 
     def evaluate(self, rec_list):
         pass
+    
+    def afterTrain(self):
+        pass
 
     def execute(self):
         self.initializing_log()
@@ -52,6 +55,7 @@ class Recommender(object):
         print('Training Model...')
         self.train()
         print('Testing...')
+        self.afterTrain()
         rec_list = self.test()
         print('Evaluating...')
         self.evaluate(rec_list)
