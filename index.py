@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('--run_name', type=str)
     # graph args
     parser.add_argument('--ranking', nargs='*', type=int)
-    parser.add_argument('--embbedding_size', type=int)
+    parser.add_argument('--embedding_size', type=int)
     parser.add_argument('--num_epochs', type=int)
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--learning_rate', type=float)

@@ -16,7 +16,7 @@ class NCL(GraphRecommender):
         super(NCL, self).__init__(conf, training_set, test_set)
         self.model = LGCN_Encoder(
             self.data,
-            self.config['embbedding_size'],
+            self.config['embedding_size'],
             self.config['model_config.num_layers']
         )
         self.user_centroids = None
@@ -33,7 +33,7 @@ class NCL(GraphRecommender):
     def run_kmeans(self, x):
         """Run K-means algorithm to get k clusters of the input tensor x        """
         kmeans = faiss.Kmeans(
-            d=self.config['embbedding_size'],
+            d=self.config['embedding_size'],
             k=self.config['model_config.num_clusters'],
             gpu=True
         )

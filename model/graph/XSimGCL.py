@@ -15,7 +15,7 @@ class XSimGCL(GraphRecommender):
         super(XSimGCL, self).__init__(conf, training_set, test_set)
         self.model = XSimGCL_Encoder(
             self.data,
-            self.config['embbedding_size'],
+            self.config['embedding_size'],
             self.config['model_config.eps'],
             self.config['model_config.num_layers'],
             self.config['model_config.layer_cl']

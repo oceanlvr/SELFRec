@@ -5,7 +5,7 @@ yelp2018:
   ranking: 
     - 10
     - 20
-  embbedding_size: 64
+  embedding_size: 64
   num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
@@ -26,7 +26,7 @@ iFashion:
   ranking: 
     - 10
     - 20
-  embbedding_size: 64
+  embedding_size: 64
   num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001

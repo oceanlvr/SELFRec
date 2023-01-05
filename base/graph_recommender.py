@@ -112,7 +112,7 @@ class GraphRecommender(Recommender):
         return metric
 
     def fast_evaluation(self, epoch):
-        print('evaluating the model...')
+        print('Evaluating the model...')
         rec_list = self.test()
         measure = ranking_evaluation(self.data.test_set, rec_list, [
                                      max(self.config['ranking'])])
