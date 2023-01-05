@@ -23,7 +23,7 @@ class NCL(GraphRecommender):
         self.user_2cluster = None
         self.item_centroids = None
         self.item_2cluster = None
-    # e-step  
+    # e-step  user_centroids[1,...k] user_2cluster(user idx to user_centroids index)
     def e_step(self):
         user_embeddings = self.model.embedding_dict['user_emb'].detach().cpu().numpy()
         item_embeddings = self.model.embedding_dict['item_emb'].detach().cpu().numpy()

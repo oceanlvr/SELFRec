@@ -8,7 +8,12 @@
       "name": "python debugger",
       "type": "python",
       "request": "launch",
-      "program": "main.py",
+      "program": "index.py",
+      "args": [
+        "--gpu_id=0",
+        "--model=NCL",
+        "--dataset=yelp2018",
+      ],
       "console": "integratedTerminal",
       "justMyCode": true
     }
