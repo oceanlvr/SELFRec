@@ -2,7 +2,7 @@
 program: /workspace/index.py
 method: bayes
 name: NCL-yelp2018
-run_cap: 500
+run_cap: 40
 command:
   - ${env}
   - ${interpreter}
@@ -10,7 +10,7 @@ command:
   - "--model"
   - "NCL"
   - "--gpu_id"
-  - "1"
+  - "0"
   - "--dataset"
   - "yelp2018"
   - ${args}
@@ -19,19 +19,20 @@ metric:
   name: target
 parameters:
   model_config.num_layers:
-    max: 0.001
-    min: 0.000001
-  model_config.hyper_layers: 
-    values: [1000,1500,2000]
+    values: [2,3]
+  model_config.hyper_layers:
+    values: [1]
   model_config.ssl_reg: 
-    max: 0.9
-    min: 0.05
+    max: 0.00001
+    min: 0.000001
   model_config.proto_reg: 
-    max: 0.5
-    min: 0.05
+    max: 0.0000001
+    min: 0.00000001
   model_config.temperature: 
-    values: [1000,1500,2000]
+    max: 0.01
+    min: 0.1
   model_config.alpha: 
-    values: [1000,1500,2000]
+    max: 0.5
+    min: 1.5
   model_config.num_clusters: 
-    values: [1000,1500,2000]
+    values: [500,1000,1500,2000]

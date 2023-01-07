@@ -217,6 +217,7 @@ If you find this repo helpful to your research, please cite our paper.
 
 
 ## RUN
+nohup python index.py --gpu_id=0 --model=NCL --dataset=yelp2018 > ./0.log 2>&1 &
 
 ```shell
 nohup python index.py --gpu_id=0 --model=SGL --dataset=iFashion > ./0.log 2>&1 &

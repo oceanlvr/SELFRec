@@ -47,12 +47,15 @@ class NCL(GraphRecommender):
 
     def ProtoNCE_loss(self, initial_emb, user_idx, item_idx):
         user_emb, item_emb = torch.split(initial_emb, [self.data.user_num, self.data.item_num])
+
         user2cluster = self.user_2cluster[user_idx]
         user2centroids = self.user_centroids[user2cluster]
         proto_nce_loss_user = InfoNCE(user_emb[user_idx], user2centroids, self.config['model_config.temperature']) * self.config['batch_size']
+
         item2cluster = self.item_2cluster[item_idx]
         item2centroids = self.item_centroids[item2cluster]
         proto_nce_loss_item = InfoNCE(item_emb[item_idx], item2centroids, self.config['model_config.temperature']) * self.config['batch_size']
+
         # 注意这里 proto_nce_loss_item 前面没有去加这个 alpha 系数
         proto_nce_loss = self.config['model_config.proto_reg'] * (proto_nce_loss_user + proto_nce_loss_item)
         return proto_nce_loss
@@ -98,22 +101,22 @@ class NCL(GraphRecommender):
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
                 rec_user_emb, rec_item_emb, emb_list = model()
-                user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
-                rec_bpr_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
                 
                 # 第一层初始的 GNN emb
                 initial_emb = emb_list[0]
                 # 第 2*N 层 GNN emb
                 context_emb = emb_list[self.config['model_config.hyper_layers']*2]
                 # 这部分是layer位置的对比损失
-                pos_loss = self.ssl_layer_loss(context_emb, initial_emb, user_idx,pos_idx)
+                pos_loss = self.ssl_layer_loss(context_emb, initial_emb, user_idx, pos_idx)
 
                 # 推荐的brp损失+l2损失
-                rec_loss = rec_bpr_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
+                user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
+                rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
 
                 # 原型损失
                 proto_loss = torch.zeros_like(pos_loss)
                 if epoch >= 20: #warm_up
+                    # initial_emb
                     proto_loss = self.ProtoNCE_loss(initial_emb, user_idx, pos_idx)
                     
                 cl_loss = proto_loss + pos_loss

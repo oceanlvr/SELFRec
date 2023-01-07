@@ -126,7 +126,7 @@ class GraphRecommender(Recommender):
             else:
                 count -= 1
 
-        if not self.bestPerformance['hasRecord'] or count > 0:
+        if (not self.bestPerformance['hasRecord']) or count > 0:
             addon = self.addPerformanceAddon()
             bestPerformance = {
                 'epoch': epoch + 1,
@@ -142,6 +142,18 @@ class GraphRecommender(Recommender):
         measure = [m.strip() for m in measure[1:]]
         print('*Current Performance*')
         print('Epoch:', str(epoch + 1) + ',', ' | '.join(measure))
+        # set target
+        wandb.log({
+            'epoch': epoch + 1,
+            'hit_ratio': metric['Hit Ratio'],
+            'precision': metric['Precision'],
+            'recall': metric['Recall'],
+            'NDCG': metric['NDCG'],
+            'target': 0.1*metric['Hit Ratio'] +
+            0.1*metric['Precision'] +
+            0.4*metric['Recall'] +
+            0.4*metric['NDCG']
+        })
         bp = ''
         curMetric = self.bestPerformance['metric']
         bp += 'Hit Ratio' + ':' + \
@@ -150,32 +162,21 @@ class GraphRecommender(Recommender):
             str(curMetric['Precision']) + ' | '
         bp += 'Recall' + ':' + str(curMetric['Recall']) + ' | '
         bp += 'MDCG' + ':' + str(curMetric['NDCG'])
-
-        # set target
-        wandb.log({
-            'hit_ratio': curMetric['Hit Ratio'],
-            'precision': curMetric['Precision'],
-            'recall': curMetric['Recall'],
-            'NDCG': curMetric['NDCG'],
-            'target': 0.1*curMetric['Hit Ratio'] +
-            0.1*curMetric['Precision'] +
-            0.4*curMetric['Recall'] +
-            0.4*curMetric['NDCG']
-        })
-
         print('*Best Performance* ')
         print('Epoch:', str(self.bestPerformance['epoch']) + ',', bp)
         print('-' * 120)
         # print('Addon:', ',', str(self.bestPerformance['addon']))
         # print('-' * 120)
-        # FIXME: debug
-        if int(self.bestPerformance['epoch']) is 1:
-            self.drawPicture(self.bestPerformance['addon']['user_emb'], 'user_emb '+ 'epoch: 3')
+        if (epoch + 1) % 10 ==0:
+            self.drawheatmaps()
         return measure
 
     def afterTrain(self):
-        self.drawPicture(self.bestPerformance['addon']['user_emb'], 'user_emb')
-        self.drawPicture(self.bestPerformance['addon']['item_emb'], 'item_emb')
+        self.drawheatmaps()
 
-    def drawPicture(self, emb, name):
-        plot_features(emb, self.config['name'] + ' ' + name)
+    def drawheatmaps(self):
+        self.drawheatmap(self.bestPerformance['addon']['user_emb'], 'user_emb_'+str(self.bestPerformance['epoch']))
+        self.drawheatmap(self.bestPerformance['addon']['item_emb'], 'item_emb_'+str(self.bestPerformance['epoch']))
+
+    def drawheatmap(self, emb, name):
+        plot_features(emb, self.config['name'] + '_' + name)
