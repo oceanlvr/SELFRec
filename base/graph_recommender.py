@@ -167,8 +167,8 @@ class GraphRecommender(Recommender):
         print('-' * 120)
         # print('Addon:', ',', str(self.bestPerformance['addon']))
         # print('-' * 120)
-        if (epoch + 1) % 10 ==0:
-            self.drawheatmaps()
+        # if (epoch + 1) % 10 ==0:
+        #     self.drawheatmaps()
         return measure
 
     def afterTrain(self):

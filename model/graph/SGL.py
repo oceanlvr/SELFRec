@@ -45,7 +45,12 @@ class SGL(GraphRecommender):
                 optimizer.zero_grad()
                 batch_loss.backward()
                 optimizer.step()
-                wandb.log({'epoch':epoch+1,'batch_loss': batch_loss.item(),'rec_loss':rec_loss.item(),'cl_loss': cl_loss.item()})
+                wandb.log({
+                    'epoch': epoch + 1,
+                    'batch_loss': batch_loss.item(),
+                    'rec_loss': rec_loss.item(),
+                    'cl_loss': cl_loss.item(),
+                })
                 if index % 100 == 0:
                     print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'cl_loss', cl_loss.item())
             with torch.no_grad():

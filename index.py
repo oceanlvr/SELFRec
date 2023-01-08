@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     # Register your model here
     baseline = ['LightGCN', 'DirectAU', 'MF']
-    graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR',
+    graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR', 'LightGCN',
                     'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF']
     sequential_models = []
     args = vars(parser.parse_args())
