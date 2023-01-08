@@ -12,6 +12,8 @@ yelp2018:
   learning_rate: 0.001
   lambda: 0.0001
   output: ./results/
+  model_config.num_layers: 3
+
 
 iFashion:
   name: LightGCN
@@ -27,3 +29,5 @@ iFashion:
   learning_rate: 0.001
   lambda: 0.0001
   output: ./results/
+  model_config.num_layers: 3
+

@@ -47,8 +47,8 @@ if __name__ == '__main__':
     config = mergeDict(config, args)
     wandb.init(project="gclrec", entity="oceanlvr",
                name=args['run_name'] or None, config=config)
-
-    fix_random_seed(wandb.config['seed'])
+    if wandb.config['model'] is not 'SGL':
+        fix_random_seed(wandb.config['seed'])
     print('='*10, 'wandb.config', '='*10)
     print(wandb.config)
     print('='*10, 'wandb.config', '='*10)
