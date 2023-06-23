@@ -133,33 +133,39 @@ class Metric(object):
 
 
 def ranking_evaluation(origin, res, N):
-    measure = []
+    measure = {}
     for n in N:
         predicted = {}
         for user in res:
             predicted[user] = res[user][:n]
-        indicators = []
+        indicators = {}
         if len(origin) != len(predicted):
             print('The Lengths of test set and predicted set do not match!')
             exit(-1)
         hits = Metric.hits(origin, predicted)
         hr = Metric.hit_ratio(origin, hits)
-        indicators.append('Hit Ratio:' + str(hr) + '\n')
+        indicators['Hit Ratio'] = float(hr)
+        # remove indicators.append
+        # indicators.append('Hit Ratio:' + str(hr) + '\n')
         prec = Metric.precision(hits, n)
-        indicators.append('Precision:' + str(prec) + '\n')
+        indicators['Precision'] = float(prec)
+        # indicators.append('Precision:' + str(prec) + '\n')
         recall = Metric.recall(hits, origin)
-        indicators.append('Recall:' + str(recall) + '\n')
+        indicators['Recall'] = float(recall)
+        # indicators.append('Recall:' + str(recall) + '\n')
         # F1 = Metric.F1(prec, recall)
         # indicators.append('F1:' + str(F1) + '\n')
         #MAP = Measure.MAP(origin, predicted, n)
         #indicators.append('MAP:' + str(MAP) + '\n')
         NDCG = Metric.NDCG(origin, predicted, n)
-        indicators.append('NDCG:' + str(NDCG) + '\n')
+        indicators['NDCG'] = float(NDCG)
+        # indicators.append('NDCG:' + str(NDCG) + '\n')
         # AUC = Measure.AUC(origin,res,rawRes)
         # measure.append('AUC:' + str(AUC) + '\n')
-        measure.append('Top ' + str(n) + '\n')
-        measure += indicators
-    return measure
+        # measure.append('Top ' + str(n) + '\n')
+        # measure += indicators
+        measure[n] = indicators
+    return measure 
 
 def rating_evaluation(res):
     measure = []

@@ -11,7 +11,7 @@
       "program": "index.py",
       "args": [
         "--gpu_id=0",
-        "--model=NCL",
+        "--model=LightGCN",
         "--dataset=yelp2018",
       ],
       "console": "integratedTerminal",

@@ -45,7 +45,7 @@ if __name__ == '__main__':
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    wandb.init(project="gclrec", entity="oceanlvr",
+    wandb.init(project="selfrec_new", entity="oceanlvr",
                name=args['run_name'] or None, config=config)
     if wandb.config['model'] is not 'SGL':
         fix_random_seed(wandb.config['seed'])

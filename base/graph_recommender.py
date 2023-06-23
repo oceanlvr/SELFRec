@@ -87,81 +87,83 @@ class GraphRecommender(Recommender):
             '-top-' + str(max(self.config['ranking'])) + 'items' + '.txt'
         FileIO.write_file(out_dir, file_name, self.recOutput)
         print('The result has been output to ', abspath(out_dir), '.')
-        file_name = self.config['name'] + '@' + \
-            current_time + '-performance' + '.txt'
-        self.result = ranking_evaluation(self.data.test_set, rec_list, [
-                                         int(num) for num in self.config['ranking']])
+        file_name = self.config['name'] + '@' + current_time + '-performance' + '.txt'
+        rankings = [int(num) for num in self.config['ranking']]
+        self.result = ranking_evaluation(self.data.test_set, rec_list, rankings)
+
         wandb.log({'finnal_result': self.result})
         FileIO.write_file(out_dir, file_name, self.result)
         print('The result of %s:\n%s' %
               (self.config['name'], ''.join(self.result)))
 
-    def addPerformanceAddon(self):
-        performance = {}
-        performance['user_emb'] = self.model.embedding_dict['user_emb'].detach(
-        ).cpu().numpy()
-        performance['item_emb'] = self.model.embedding_dict['item_emb'].detach(
-        ).cpu().numpy()
-        return performance
-
-    def getMetric(self, measure):
-        metric = {}
-        for m in measure[1:]:
-            k, v = m.strip().split(':')
-            metric[k] = float(v)
-        return metric
-
-    def fast_evaluation(self, epoch):
-        print('Evaluating the model...')
-        rec_list = self.test()
-        measure = ranking_evaluation(self.data.test_set, rec_list, [
-                                     max(self.config['ranking'])])
-        metric = self.getMetric(measure)
-
+    def update_bestPerformance(self, max_rank_metric, epoch):
         # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
         count = 0
         for k in self.bestPerformance['metric']:
-            if self.bestPerformance['metric'][k] > metric[k]:
+            if self.bestPerformance['metric'][k] > max_rank_metric[k]:
                 count += 1
             else:
                 count -= 1
 
         if (not self.bestPerformance['hasRecord']) or count > 0:
-            addon = self.addPerformanceAddon()
+            addon = {
+                'user_emb': self.model.embedding_dict['user_emb'].detach().cpu().numpy(),
+                'item_emb': self.model.embedding_dict['item_emb'].detach().cpu().numpy()
+            }
             bestPerformance = {
-                'epoch': epoch + 1,
-                'metric': metric,
+                'epoch': epoch,
+                'metric': max_rank_metric,
                 'addon': addon,
                 'hasRecord': True
             }
             self.bestPerformance = bestPerformance
             self.save()
+
+    def fast_evaluation(self, epoch):
+        print('Evaluating the model...')
+        rec_list = self.test()
+
+        # {
+        #     '10': {
+        #         'Hit Ratio': 0.2,
+        #         'Precision': 0.2,
+        #     },
+        #     '50': {
+        #         'Hit Ratio': 0.4,
+        #         'Precision': 0.1,
+        #     }
+        # }
+        measure = ranking_evaluation(self.data.test_set, rec_list, self.config['ranking'])
+
+        max_rank_metric = measure[max(self.config['ranking'])]
+        max_rank = str(max(self.config['ranking']))
+
+        # update best performance
+        self.update_bestPerformance(max_rank_metric, epoch + 1)
+
         print('-' * 120)
-        print('Real-Time Ranking Performance ' + ' (Top-' +
-              str(max(self.config['ranking'])) + ' Item Recommendation)')
-        measure = [m.strip() for m in measure[1:]]
+        print('Real-Time Ranking Performance (Top-' + max_rank + ' Item Recommendation)')
+        # measure = [m.strip() for m in max_rank_metric]
         print('*Current Performance*')
-        print('Epoch:', str(epoch + 1) + ',', ' | '.join(measure))
-        # set target
-        wandb.log({
-            'epoch': epoch + 1,
-            'hit_ratio': metric['Hit Ratio'],
-            'precision': metric['Precision'],
-            'recall': metric['Recall'],
-            'NDCG': metric['NDCG'],
-            'target': 0.1*metric['Hit Ratio'] +
-            0.1*metric['Precision'] +
-            0.4*metric['Recall'] +
-            0.4*metric['NDCG']
-        })
+        print('Epoch:', str(epoch + 1) + ',', ' | '.join([k+':'+str(v) for k, v in max_rank_metric.items()]))
+
+        # set target for wandb and print log info
+        log_info = {
+            'epoch': epoch + 1
+        }
+        for topk,ind in measure.items():
+            for name,value in ind.items():
+                log_info[str(name)+'@'+str(topk)] = value
+        wandb.log(log_info)
+
         bp = ''
-        curMetric = self.bestPerformance['metric']
+        curBestPerformanceMetric = self.bestPerformance['metric']
         bp += 'Hit Ratio' + ':' + \
-            str(curMetric['Hit Ratio']) + ' | '
+            str(curBestPerformanceMetric['Hit Ratio']) + ' | '
         bp += 'Precision' + ':' + \
-            str(curMetric['Precision']) + ' | '
-        bp += 'Recall' + ':' + str(curMetric['Recall']) + ' | '
-        bp += 'MDCG' + ':' + str(curMetric['NDCG'])
+            str(curBestPerformanceMetric['Precision']) + ' | '
+        bp += 'Recall' + ':' + str(curBestPerformanceMetric['Recall']) + ' | '
+        bp += 'MDCG' + ':' + str(curBestPerformanceMetric['NDCG'])
         print('*Best Performance* ')
         print('Epoch:', str(self.bestPerformance['epoch']) + ',', bp)
         print('-' * 120)
