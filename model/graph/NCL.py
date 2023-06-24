@@ -10,6 +10,7 @@ import faiss
 import wandb
 
 # paper: Improving Graph Collaborative Filtering with Neighborhood-enriched Contrastive Learning. WWW'22
+# 为了识别节点 (用户和项目)的语义邻居，HCCF 和 NCL 追求图结构相邻节点和语义邻居之间的一致表示。
 
 class NCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):

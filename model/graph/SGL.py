@@ -36,6 +36,7 @@ class SGL(GraphRecommender):
                 # 有三部分 Loss。推荐系统BPR损失 对比学习损失 L2正则损失
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
 
+                # 破坏用户-项目交互图的结构信息来生成正视图的节点对（用户-位置节点对）
                 cl_loss = self.config['model_config.lambda'] * model.cal_cl_loss([user_idx,pos_idx],dropped_adj1,dropped_adj2)
                 l2_loss = l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
                 batch_loss = rec_loss + l2_loss + cl_loss
