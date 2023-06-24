@@ -92,7 +92,7 @@ class GraphRecommender(Recommender):
         self.result = ranking_evaluation(self.data.test_set, rec_list, rankings)
 
         wandb.log({'finnal_result': self.result})
-        FileIO.write_file(out_dir, file_name, self.result)
+        FileIO.write_file(out_dir, file_name, str(self.result))
         print('The result of %s:\n%s' %
               (self.config['name'], ''.join(self.result)))
 

@@ -47,17 +47,18 @@ if __name__ == '__main__':
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    wandb.init(project="selfrec_new",group=args['group'],job_type=args['job_type'], entity="oceanlvr",
-               name=args['run_name'] or None, config=config)
-    if wandb.config['model'] is not 'SGL':
-        fix_random_seed(wandb.config['seed'])
-    print('='*10, 'wandb.config', '='*10)
-    print(wandb.config)
-    print('='*10, 'wandb.config', '='*10)
+    with wandb.init(project="selfrec_new",group=args['group'],job_type=args['job_type'], entity="oceanlvr",
+               name=args['run_name'] or None, config=config):
+        if wandb.config['model'] is not 'SGL':
+            fix_random_seed(wandb.config['seed'])
+        print('='*10, 'wandb.config', '='*10)
+        print(wandb.config)
+        print('='*10, 'wandb.config', '='*10)
 
-    if wandb.config['model'] not in graph_models:
-        print("Wrong model name! Model {} is not supported".format(
-            wandb.config['model']))
-        exit(-1)
-    rec = SELFRec(wandb.config)
-    rec.execute()
+        if wandb.config['model'] not in graph_models:
+            print("Wrong model name! Model {} is not supported".format(
+                wandb.config['model']))
+            exit(-1)
+        rec = SELFRec(wandb.config)
+        rec.execute()
+        wandb.run.log_code()
