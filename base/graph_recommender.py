@@ -1,3 +1,4 @@
+from wandb import AlertLevel
 from base.recommender import Recommender
 from data.ui_graph import Interaction
 from util.algorithm import find_k_largest
@@ -59,8 +60,7 @@ class GraphRecommender(Recommender):
             rated_list, li = self.data.user_rated(user)
             for item in rated_list:
                 candidates[self.data.item[item]] = -10e8
-            ids, scores = find_k_largest(
-                max(self.config['ranking']), candidates)  # WIP
+            ids, scores = find_k_largest(max(self.config['ranking']), candidates)  # WIP
             item_names = [self.data.id2item[iid] for iid in ids]
             rec_list[user] = list(zip(item_names, scores))
             if i % 1000 == 0:
@@ -96,7 +96,8 @@ class GraphRecommender(Recommender):
         print('The result of %s:\n%s' %
               (self.config['name'], ''.join(self.result)))
 
-    def update_bestPerformance(self, max_rank_metric, epoch):
+    def update_bestPerformance(self, measure, epoch):
+        max_rank_metric = measure[max(self.config['ranking'])]
         # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
         count = 0
         for k in self.bestPerformance['metric']:
@@ -117,6 +118,12 @@ class GraphRecommender(Recommender):
                 'hasRecord': True
             }
             self.bestPerformance = bestPerformance
+            # wandb.alert(
+            #     title="Updated bestPerformance", 
+            #     text=f"Accuracy {acc} is below the acceptable threshold {threshold}",
+            #     level=AlertLevel.INFO,
+            #     wait_duration=300
+            # )
             self.save()
 
     def fast_evaluation(self, epoch):
@@ -135,15 +142,14 @@ class GraphRecommender(Recommender):
         # }
         measure = ranking_evaluation(self.data.test_set, rec_list, self.config['ranking'])
 
+        # update best performance
+        self.update_bestPerformance(measure, epoch + 1)
+
         max_rank_metric = measure[max(self.config['ranking'])]
         max_rank = str(max(self.config['ranking']))
 
-        # update best performance
-        self.update_bestPerformance(max_rank_metric, epoch + 1)
-
         print('-' * 120)
         print('Real-Time Ranking Performance (Top-' + max_rank + ' Item Recommendation)')
-        # measure = [m.strip() for m in max_rank_metric]
         print('*Current Performance*')
         print('Epoch:', str(epoch + 1) + ',', ' | '.join([k+':'+str(v) for k, v in max_rank_metric.items()]))
 
