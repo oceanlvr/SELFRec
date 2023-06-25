@@ -31,3 +31,51 @@ iFashion:
   output: ./results/
   model_config.num_layers: 3
 
+
+douban-book:
+  name: LightGCN
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 20
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  model_config.num_layers: 3
+
+amazon-kindle:
+  name: LightGCN
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 20
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  model_config.num_layers: 3
+
+ml-1M:
+  name: LightGCN
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 20
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  model_config.num_layers: 3
