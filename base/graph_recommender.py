@@ -94,7 +94,7 @@ class GraphRecommender(Recommender):
         wandb.log({'finnal_result': self.result})
         FileIO.write_file(out_dir, file_name, str(self.result))
         print('The result of %s:\n%s' %
-              (self.config['name'], ''.join(self.result)))
+              (self.config['name'], ''.join(str(self.result))))
 
     def update_bestPerformance(self, measure, epoch):
         max_rank_metric = measure[max(self.config['ranking'])]
