@@ -180,11 +180,12 @@ class GraphRecommender(Recommender):
         return measure
 
     def afterTrain(self):
-        self.drawheatmaps()
+        # self.drawheatmaps()
+        pass
 
     def drawheatmaps(self):
-        self.drawheatmap(self.bestPerformance['addon']['user_emb'], 'user_emb_'+str(self.bestPerformance['epoch']))
-        self.drawheatmap(self.bestPerformance['addon']['item_emb'], 'item_emb_'+str(self.bestPerformance['epoch']))
+        drawheatmap = lambda emb, name: plot_features(emb, self.config['name'] + '_' + name)
+        drawheatmap(self.bestPerformance['addon']['user_emb'], 'user_emb_'+str(self.bestPerformance['epoch']))
+        drawheatmap(self.bestPerformance['addon']['item_emb'], 'item_emb_'+str(self.bestPerformance['epoch']))
 
-    def drawheatmap(self, emb, name):
-        plot_features(emb, self.config['name'] + '_' + name)
+    

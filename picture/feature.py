@@ -18,7 +18,7 @@ def reduction_features(user_emb):
     return user_emb_2d
 
 
-# input: user
+# print user-item feature plots input: user
 def plot_features(embs, name):
     reduction_f = reduction_features(embs)
     f, axs = plt.subplots(nrows=2, figsize=(5,5), gridspec_kw={'height_ratios': [3, 1]})
