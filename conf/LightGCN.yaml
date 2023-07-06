@@ -24,7 +24,7 @@ iFashion:
     - 20
     - 50
   embedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
@@ -41,7 +41,7 @@ douban-book:
     - 20
     - 50
   embedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
@@ -57,7 +57,7 @@ amazon-kindle:
     - 20
     - 50
   embedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
@@ -73,7 +73,7 @@ ml-1M:
     - 20
     - 50
   embedding_size: 64
-  num_epochs: 20
+  num_epochs: 120
   batch_size: 2048
   learning_rate: 0.001
   lambda: 0.0001
