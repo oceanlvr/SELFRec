@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from base.graph_recommender import GraphRecommender
-from util.conf import OptionConf
+# from util.conf import OptionConf
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
@@ -13,23 +13,24 @@ from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
 class SimGCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
         super(SimGCL, self).__init__(conf, training_set, test_set)
-        args = OptionConf(self.config['SimGCL'])
-        self.cl_rate = float(args['-lambda'])
-        self.eps = float(args['-eps'])
-        self.n_layers = int(args['-n_layer'])
-        self.model = SimGCL_Encoder(self.data, self.emb_size, self.eps, self.n_layers)
+        self.model = SimGCL_Encoder(
+            self.data,
+            self.config['embedding_size'],
+            self.config['model_config.eps'],
+            self.config['model_config.num_layers'],
+        )
 
     def train(self):
         model = self.model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lRate)
-        for epoch in range(self.maxEpoch):
-            for n, batch in enumerate(next_batch_pairwise(self.data, self.batch_size)):
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.config['learning_rate'])
+        for epoch in range(self.config['num_epochs']):
+            for n, batch in enumerate(next_batch_pairwise(self.data, self.config['batch_size'])):
                 user_idx, pos_idx, neg_idx = batch
                 rec_user_emb, rec_item_emb = model()
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb)
-                cl_loss = self.cl_rate * self.cal_cl_loss([user_idx,pos_idx])
-                batch_loss =  rec_loss + l2_reg_loss(self.reg, user_emb, pos_item_emb) + cl_loss
+                cl_loss = self.config['model_config.lambda'] * self.cal_cl_loss([user_idx,pos_idx])
+                batch_loss =  rec_loss + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb) + cl_loss
                 # Backward and optimize
                 optimizer.zero_grad()
                 batch_loss.backward()

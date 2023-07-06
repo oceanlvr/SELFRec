@@ -2,13 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from base.graph_recommender import GraphRecommender
-from util.conf import OptionConf
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
 
 # Paper: XSimGCL - Towards Extremely Simple Graph Contrastive Learning for Recommendation
-
 
 class XSimGCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):

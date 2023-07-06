@@ -39,3 +39,15 @@ nohup python index.py --gpu_id=1 --group benchmark --job_type train --run_name S
 nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name SGL_3 --model=SGL --dataset="douban-book" --num_epochs=120 > ./2.log 2>&1 &
 nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name SGL_4 --model=SGL --dataset="amazon-kindle" --num_epochs=120 > ./3.log 2>&1 &
 ```
+
+
+## NCL
+
+benchmark on yelp2018 / iFashion / douban-book / amazon-kindle
+
+```sh
+nohup python index.py --gpu_id=0 --group benchmark --job_type train --run_name NCL_1 --model=NCL --dataset=yelp2018 --batch_size=1024  > ./0.log 2>&1 &
+nohup python index.py --gpu_id=1 --group benchmark --job_type train --run_name NCL_2 --model=NCL --dataset=iFashion --num_epochs=120 --batch_size=1024 > ./1.log 2>&1 &
+nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name NCL_3 --model=NCL --dataset="douban-book" --num_epochs=120 --batch_size=1024  > ./2.log 2>&1 &
+nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name NCL_4 --model=NCL --dataset="amazon-kindle" --num_epochs=120 --batch_size=1024  > ./3.log 2>&1 &
+```
