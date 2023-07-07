@@ -13,12 +13,11 @@ yelp2018:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    layer_cl: 1
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 iFashion:
   name: XSimGCL
@@ -35,12 +34,11 @@ iFashion:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    layer_cl: 1
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 douban-book:
   name: XSimGCL
@@ -57,12 +55,11 @@ douban-book:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    layer_cl: 1
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 amazon-kindle:
   name: XSimGCL
@@ -79,12 +76,11 @@ amazon-kindle:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    layer_cl: 1
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 ml-1M:
   name: XSimGCL
@@ -101,9 +97,8 @@ ml-1M:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    layer_cl: 1
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15

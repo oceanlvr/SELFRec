@@ -13,11 +13,10 @@ yelp2018:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 iFashion:
   name: SimGCL
@@ -34,11 +33,10 @@ iFashion:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 douban-book:
   name: SimGCL
@@ -55,11 +53,10 @@ douban-book:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 amazon-kindle:
   name: SimGCL
@@ -76,11 +73,10 @@ amazon-kindle:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
 
 ml-1M:
   name: SimGCL
@@ -97,8 +93,7 @@ ml-1M:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config:
-    num_layers: 3
-    lambda: 0.2
-    eps: 0.2
-    tau: 0.15
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
