@@ -51,3 +51,26 @@ nohup python index.py --gpu_id=1 --group benchmark --job_type train --run_name N
 nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name NCL_3 --model=NCL --dataset="douban-book" --num_epochs=120 --batch_size=1024  > ./2.log 2>&1 &
 nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name NCL_4 --model=NCL --dataset="amazon-kindle" --num_epochs=120 --batch_size=1024  > ./3.log 2>&1 &
 ```
+
+
+## SimGCL
+
+benchmark on yelp2018 / iFashion / douban-book / amazon-kindle
+
+```sh
+nohup python index.py --gpu_id=0 --group benchmark --job_type train --run_name yelp_SimGCL --model=SimGCL --dataset=yelp2018 --batch_size=1024  > ./0.log 2>&1 &
+nohup python index.py --gpu_id=1 --group benchmark --job_type train --run_name iF_SimGCL --model=SimGCL --dataset=iFashion --num_epochs=120 --batch_size=1024 > ./1.log 2>&1 &
+nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name db_SimGCL --model=SimGCL --dataset="douban-book" --num_epochs=120 --batch_size=1024  > ./2.log 2>&1 &
+nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name ak_SimGCL --model=SimGCL --dataset="amazon-kindle" --num_epochs=120 --batch_size=1024  > ./3.log 2>&1 &
+```
+
+## XSimGCL
+
+benchmark on yelp2018 / iFashion / douban-book / amazon-kindle
+
+```sh
+nohup python index.py --gpu_id=0 --group benchmark --job_type train --run_name yelp_XSimGCL --model=XSimGCL --dataset=yelp2018 --batch_size=1024  > ./0.log 2>&1 &
+nohup python index.py --gpu_id=1 --group benchmark --job_type train --run_name iF_XSimGCL --model=XSimGCL --dataset=iFashion --num_epochs=120 --batch_size=1024 > ./1.log 2>&1 &
+nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name db_XSimGCL --model=XSimGCL --dataset="douban-book" --num_epochs=120 --batch_size=1024  > ./2.log 2>&1 &
+nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name ak_XSimGCL --model=XSimGCL --dataset="amazon-kindle" --num_epochs=120 --batch_size=1024  > ./3.log 2>&1 &
+```

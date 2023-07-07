@@ -37,6 +37,10 @@ if __name__ == '__main__':
     parser.add_argument('--model_config.alpha', type=float)
     parser.add_argument('--model_config.num_clusters', type=float)
 
+    # template SimGCL
+    parser.add_argument('--model_config.eps', type=float)
+    parser.add_argument('--model_config.tau', type=float)
+
     # Register your model here
     baseline = ['LightGCN', 'DirectAU', 'MF']
     graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR', 'LightGCN',
