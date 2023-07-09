@@ -52,7 +52,6 @@ nohup python index.py --gpu_id=2 --group benchmark --job_type train --run_name N
 nohup python index.py --gpu_id=3 --group benchmark --job_type train --run_name NCL_4 --model=NCL --dataset="amazon-kindle" --num_epochs=120 --batch_size=1024  > ./3.log 2>&1 &
 ```
 
-
 ## SimGCL
 
 benchmark on yelp2018 / iFashion / douban-book / amazon-kindle
