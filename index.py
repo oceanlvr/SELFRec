@@ -12,8 +12,8 @@ if __name__ == '__main__':
     parser.add_argument('--root', type=str, default='/workspace/')
     parser.add_argument('--gpu_id', type=int, default=0)
     parser.add_argument('--tags', nargs='*', default=[])  # 这里是一些标签
-    parser.add_argument('--group', type=str, default='default')  # 
-    parser.add_argument('--job_type', type=str, default='eval')  # 
+    parser.add_argument('--group', type=str, default='default')  #
+    parser.add_argument('--job_type', type=str, default='eval')  #
     parser.add_argument('--notes', type=str)
     parser.add_argument('--run_name', type=str)
     # graph args
@@ -44,14 +44,15 @@ if __name__ == '__main__':
     # Register your model here
     baseline = ['LightGCN', 'DirectAU', 'MF']
     graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR', 'LightGCN',
-                    'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF']
+                    'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF', 'SwAVGCL']
     sequential_models = []
     args = vars(parser.parse_args())
 
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    wandb.init(project="selfrec_new",group=args['group'],job_type=args['job_type'], entity="oceanlvr", name=args['run_name'] or None, config=config)
+    wandb.init(project="selfrec_new", group=args['group'], job_type=args['job_type'],
+               entity="oceanlvr", name=args['run_name'] or None, config=config)
     wandb.run.log_code(".")
 
     if wandb.config['model'] is not 'SGL':
