@@ -8,9 +8,11 @@ from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
 import faiss
 import wandb
+from sklearn.cluster import KMeans
 
 # paper: Improving Graph Collaborative Filtering with Neighborhood-enriched Contrastive Learning. WWW'22
 # 为了识别节点 (用户和项目)的语义邻居，HCCF 和 SwAVGCL 追求图结构相邻节点和语义邻居之间的一致表示。
+
 
 class SwAVGCL(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
@@ -24,29 +26,85 @@ class SwAVGCL(GraphRecommender):
     def SwaVNCE_loss(self, initial_emb, user_idx, item_idx):
         user_emb, item_emb = torch.split(
             initial_emb, [self.data.user_num, self.data.item_num])
-        
-        # your code here
-        temperature = 0.1  # you might want to tune this hyperparameter
-        
-        # Calculate similarities for users
-        user_similarity = torch.mm(user_emb, user_emb.t())
-        user_similarity /= temperature
-        
-        # Calculate the swav loss for users
-        user_loss = -F.log_softmax(user_similarity, dim=1)[range(len(user_emb)), user_idx]
-        swav_nce_loss_user = user_loss.mean()
-        
-        # Calculate similarities for items
-        item_similarity = torch.mm(item_emb, item_emb.t())
-        item_similarity /= temperature
-        
-        # Calculate the swav loss for items
-        item_loss = -F.log_softmax(item_similarity, dim=1)[range(len(item_emb)), item_idx]
-        swav_nce_loss_item = item_loss.mean()
-        
-        swav_nce_loss = self.config['model_config.swav_reg'] * (swav_nce_loss_user + swav_nce_loss_item)
-        
+
+        # Normalize embeddings
+        user_emb = F.normalize(user_emb, dim=1, p=2)
+        item_emb = F.normalize(item_emb, dim=1, p=2)
+
+        # Calculate similarity matrices with temperature
+        user_user_sim = user_emb[user_idx] @ user_emb.t() / \
+            self.config['model_config.temperature']
+        item_item_sim = item_emb[item_idx] @ item_emb.t() / \
+            self.config['model_config.temperature']
+        user_item_sim = user_emb[user_idx] @ item_emb[item_idx].t() / \
+            self.config['model_config.temperature']
+
+        # Getting the pseudo labels by using the highest similarity
+        _, user_pseudo_labels = user_user_sim.max(dim=1)
+        _, item_pseudo_labels = user_item_sim.max(dim=1)
+
+        # Calculate cross-entropy loss
+        swav_nce_loss_user = F.cross_entropy(user_user_sim, user_pseudo_labels)
+        swav_nce_loss_item = F.cross_entropy(item_item_sim, item_pseudo_labels)
+        swav_nce_loss_user_item = F.cross_entropy(
+            user_item_sim, item_pseudo_labels)
+
+        swav_nce_loss = swav_nce_loss_user + swav_nce_loss_item + swav_nce_loss_user_item
         return swav_nce_loss
+
+    def SwaVNCE_loss_1(self, initial_emb, user_idx, item_idx):
+        user_emb, item_emb = torch.split(
+            initial_emb, [self.data.user_num, self.data.item_num])
+
+        # Normalize embeddings
+        user_emb = F.normalize(user_emb, dim=1, p=2)
+        item_emb = F.normalize(item_emb, dim=1, p=2)
+
+        # Calculate similarity matrices
+        user_user_sim = user_emb[user_idx] @ user_emb.t()
+        user_item_sim = user_emb[user_idx] @ item_emb[item_idx].t()
+
+        # Getting the pseudo labels by using the highest similarity
+        _, user_pseudo_labels = user_user_sim.max(dim=1)
+        _, item_pseudo_labels = user_item_sim.max(dim=1)
+
+        # Calculate cross-entropy loss
+        swav_nce_loss_user = F.cross_entropy(user_user_sim, user_pseudo_labels)
+        swav_nce_loss_item = F.cross_entropy(user_item_sim, item_pseudo_labels)
+
+        swav_nce_loss = swav_nce_loss_user + swav_nce_loss_item
+        return swav_nce_loss
+
+
+    def SwaVNCE_loss_2(self, initial_emb, user_idx, item_idx):
+            user_emb, item_emb = torch.split(
+                initial_emb, [self.data.user_num, self.data.item_num])
+
+            # Normalize embeddings
+            user_emb = F.normalize(user_emb, dim=1, p=2)
+            item_emb = F.normalize(item_emb, dim=1, p=2)
+
+            # Perform K-Means clustering to get pseudo labels
+            kmeans_user = KMeans(n_clusters=self.num_clusters).fit(
+                user_emb.cpu().detach().numpy())
+            kmeans_item = KMeans(n_clusters=self.num_clusters).fit(
+                item_emb.cpu().detach().numpy())
+
+            user_pseudo_labels = torch.tensor(kmeans_user.labels_)[
+                                            user_idx].to(initial_emb.device)
+            item_pseudo_labels = torch.tensor(kmeans_item.labels_)[
+                                            item_idx].to(initial_emb.device)
+
+            # Calculate similarity matrices
+            user_user_sim = user_emb[user_idx] @ user_emb.t()
+            user_item_sim = user_emb[user_idx] @ item_emb[item_idx].t()
+
+            # Calculate cross-entropy loss
+            swav_nce_loss_user = F.cross_entropy(user_user_sim, user_pseudo_labels)
+            swav_nce_loss_item = F.cross_entropy(user_item_sim, item_pseudo_labels)
+
+            swav_nce_loss = swav_nce_loss_user + swav_nce_loss_item
+            return swav_nce_loss
 
     def train(self):
         model = self.model.cuda()
