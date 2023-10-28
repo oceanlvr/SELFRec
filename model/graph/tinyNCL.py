@@ -78,16 +78,14 @@ class tinyNCL(GraphRecommender):
                 # 第 2*N 层 GNN emb
                 context_emb = emb_list[self.config['model_config.hyper_layers']*2]
                 # 这部分是layer位置的对比损失
-                pos_loss = self.ssl_layer_loss(context_emb, initial_emb, user_idx, pos_idx)
 
                 # 推荐的brp损失+l2损失
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_reg_loss(self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
 
                 # 原型损失
-                proto_loss = self.ProtoNCE_loss(initial_emb, user_idx, pos_idx)
+                cl_loss = self.ProtoNCE_loss(initial_emb, user_idx, pos_idx)
                     
-                cl_loss = proto_loss + pos_loss
                 batch_loss = rec_loss + cl_loss
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -97,12 +95,11 @@ class tinyNCL(GraphRecommender):
                     'batch_loss': batch_loss.item(),
                     'rec_loss': rec_loss.item(),
                     'cl_loss': cl_loss.item(),
-                    'proto_loss': proto_loss.item(),
                     'pos_loss': pos_loss.item()
                 })
 
                 if index % 100==0:
-                    print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'pos_loss', pos_loss.item(), 'proto_loss', proto_loss.item())
+                    print('training:', epoch + 1, 'batch', index, 'rec_loss:', rec_loss.item(), 'pos_loss', pos_loss.item())
             with torch.no_grad():
                 self.user_emb, self.item_emb, _ = model()
             self.fast_evaluation(epoch)

@@ -130,7 +130,7 @@ class SwAVGCL(GraphRecommender):
                 rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_reg_loss(
                     self.config['lambda'], user_emb, pos_item_emb, neg_item_emb) / self.config['batch_size']
 
-                cl_loss = self.SwaVNCE_loss(
+                cl_loss = self.SwaVNCE_loss_1(
                     initial_emb, user_idx, pos_idx
                 )
 
