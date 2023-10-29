@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # Register your model here
     baseline = ['LightGCN', 'DirectAU', 'MF']
     graph_models = ['SGL', 'SimGCL', 'SEPT', 'MHCN', 'BUIR', 'LightGCN',
-                    'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF', 'SwAVGCL', 'tinyNCL']
+                    'SelfCF', 'SSL4Rec', 'XSimGCL', 'NCL', 'MixGCF', 'SwAVGCL', 'tinyNCL', 'SwAVGCLv2']
     sequential_models = []
     args = vars(parser.parse_args())
 
@@ -61,9 +61,5 @@ if __name__ == '__main__':
     print(wandb.config)
     print('='*10, 'wandb.config', '='*10)
 
-    if wandb.config['model'] not in graph_models:
-        print("Wrong model name! Model {} is not supported".format(
-            wandb.config['model']))
-        exit(-1)
     rec = SELFRec(wandb.config)
     rec.execute()

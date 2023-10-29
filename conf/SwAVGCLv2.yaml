@@ -1,0 +1,99 @@
+yelp2018:
+  name: SwAVGCLv2
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
+
+iFashion:
+  name: SwAVGCLv2
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
+
+douban-book:
+  name: SwAVGCLv2
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
+
+amazon-kindle:
+  name: SwAVGCLv2
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15
+
+ml-1M:
+  name: SwAVGCLv2
+  seed: 12345
+  type: graph
+  ranking: 
+    - 10
+    - 20
+    - 50
+  embedding_size: 64
+  num_epochs: 120
+  batch_size: 2048
+  learning_rate: 0.001
+  lambda: 0.0001
+  output: ./results/
+  # model config
+  model_config.num_layers: 3
+  model_config.lambda: 0.2
+  model_config.eps: 0.2
+  model_config.tau: 0.15

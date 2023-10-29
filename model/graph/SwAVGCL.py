@@ -60,7 +60,7 @@ class SwAVGCL(GraphRecommender):
         user_emb = F.normalize(user_emb, dim=1, p=2)
         item_emb = F.normalize(item_emb, dim=1, p=2)
 
-        # Calculate similarity matrices
+        # Calculate similarity matrices 计算获得user-user,user-item相似矩阵
         user_user_sim = user_emb[user_idx] @ user_emb.t()
         user_item_sim = user_emb[user_idx] @ item_emb[item_idx].t()
 
