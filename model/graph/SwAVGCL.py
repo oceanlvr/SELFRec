@@ -71,8 +71,7 @@ class SwAVGCL(GraphRecommender):
         # Calculate cross-entropy loss
         swav_nce_loss_user = F.cross_entropy(user_user_sim, user_pseudo_labels)
         swav_nce_loss_item = F.cross_entropy(user_item_sim, item_pseudo_labels)
-
-        swav_nce_loss = swav_nce_loss_user + swav_nce_loss_item
+        swav_nce_loss = self.config['model_config.proto_reg'] * (swav_nce_loss_user + swav_nce_loss_item)
         return swav_nce_loss
 
 

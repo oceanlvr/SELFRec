@@ -16,7 +16,7 @@ yelp2018:
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
-  model_config.swav_reg: 0.0000001
+  model_config.proto_reg: 0.0000001
   model_config.temperature: 0.05
   model_config.alpha: 1.5
   model_config.num_clusters: 2000
@@ -39,7 +39,7 @@ iFashion:
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
-  model_config.swav_reg: 0.0000001
+  model_config.proto_reg: 0.0000001
   model_config.temperature: 0.05
   model_config.alpha: 1.5
   model_config.num_clusters: 2000
@@ -62,7 +62,7 @@ douban-book:
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
-  model_config.swav_reg: 0.0000001
+  model_config.proto_reg: 0.0000001
   model_config.temperature: 0.05
   model_config.alpha: 1.5
   model_config.num_clusters: 2000
@@ -85,7 +85,7 @@ amazon-kindle:
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
-  model_config.swav_reg: 0.0000001
+  model_config.proto_reg: 0.0000001
   model_config.temperature: 0.05
   model_config.alpha: 1.5
   model_config.num_clusters: 2000
@@ -108,7 +108,7 @@ ml-1M:
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
-  model_config.swav_reg: 0.0000001
+  model_config.proto_reg: 0.0000001
   model_config.temperature: 0.1
   model_config.alpha: 1.5
   model_config.num_clusters: 2000
