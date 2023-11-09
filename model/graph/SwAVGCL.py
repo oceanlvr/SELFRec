@@ -20,7 +20,7 @@ class SwAVGCL(GraphRecommender):
         self.model = LGCN_Encoder(
             self.data,
             self.config["embedding_size"],
-            self.config['model_config.eps'],
+            self.config["model_config.eps"],
             self.config["model_config.num_layers"],
         )
 
@@ -73,8 +73,8 @@ class SwAVGCL(GraphRecommender):
     def swavloss(self, user_idx, item_idx, temperature=0.1):
         u_idx = torch.unique(torch.Tensor(user_idx).type(torch.long)).cuda()
         i_idx = torch.unique(torch.Tensor(item_idx).type(torch.long)).cuda()
-        user_view_1, item_view_1 = self.model(perturbed=True)
-        user_view_2, item_view_2 = self.model(perturbed=True)
+        user_view_1, item_view_1, _ = self.model(perturbed=True)
+        user_view_2, item_view_2, _ = self.model(perturbed=True)
 
         # Compute cluster assignment distributions for both views using Sinkhorn-Knopp
         q_user_view_1 = self.sinkhorn_knopp(user_view_1 / temperature)
@@ -128,8 +128,12 @@ class SwAVGCL(GraphRecommender):
             sum_Q = torch.sum(Q)
             Q /= sum_Q  # Normalize Q
 
-            r = torch.ones(Q.shape[0], device=device) / Q.shape[0]  # Move r to the device of log_Q
-            c = torch.ones(Q.shape[1], device=device) / Q.shape[1]  # Move c to the device of log_Q
+            r = (
+                torch.ones(Q.shape[0], device=device) / Q.shape[0]
+            )  # Move r to the device of log_Q
+            c = (
+                torch.ones(Q.shape[1], device=device) / Q.shape[1]
+            )  # Move c to the device of log_Q
 
             curr_sum = torch.sum(Q, dim=1)
 
@@ -163,7 +167,7 @@ class SwAVGCL(GraphRecommender):
                 user_idx, pos_idx, neg_idx = batch
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
-                rec_user_emb, rec_item_emb = model()
+                rec_user_emb, rec_item_emb, _ = model()
 
                 # 推荐的brp损失+l2损失
                 user_emb, pos_item_emb, neg_item_emb = (
@@ -229,26 +233,42 @@ class LGCN_Encoder(nn.Module):
         self.n_layers = n_layers
         self.norm_adj = data.norm_adj
         self.embedding_dict = self._init_model()
-        self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(self.norm_adj).cuda()
+        self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(
+            self.norm_adj
+        ).cuda()
 
     def _init_model(self):
         initializer = nn.init.xavier_uniform_
-        embedding_dict = nn.ParameterDict({
-            'user_emb': nn.Parameter(initializer(torch.empty(self.data.user_num, self.emb_size))),
-            'item_emb': nn.Parameter(initializer(torch.empty(self.data.item_num, self.emb_size))),
-        })
+        embedding_dict = nn.ParameterDict(
+            {
+                "user_emb": nn.Parameter(
+                    initializer(torch.empty(self.data.user_num, self.emb_size))
+                ),
+                "item_emb": nn.Parameter(
+                    initializer(torch.empty(self.data.item_num, self.emb_size))
+                ),
+            }
+        )
         return embedding_dict
 
     def forward(self, perturbed=False):
-        ego_embeddings = torch.cat([self.embedding_dict['user_emb'], self.embedding_dict['item_emb']], 0)
+        ego_embeddings = torch.cat(
+            [self.embedding_dict["user_emb"], self.embedding_dict["item_emb"]], 0
+        )
         all_embeddings = []
         for k in range(self.n_layers):
             ego_embeddings = torch.sparse.mm(self.sparse_norm_adj, ego_embeddings)
             if perturbed:
                 random_noise = torch.rand_like(ego_embeddings).cuda()
-                ego_embeddings += torch.sign(ego_embeddings) * F.normalize(random_noise, dim=-1) * self.eps
+                ego_embeddings += (
+                    torch.sign(ego_embeddings)
+                    * F.normalize(random_noise, dim=-1)
+                    * self.eps
+                )
             all_embeddings.append(ego_embeddings)
         all_embeddings = torch.stack(all_embeddings, dim=1)
         all_embeddings = torch.mean(all_embeddings, dim=1)
-        user_all_embeddings, item_all_embeddings = torch.split(all_embeddings, [self.data.user_num, self.data.item_num])
+        user_all_embeddings, item_all_embeddings = torch.split(
+            all_embeddings, [self.data.user_num, self.data.item_num]
+        )
         return user_all_embeddings, item_all_embeddings, all_embeddings

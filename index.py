@@ -51,7 +51,7 @@ if __name__ == '__main__':
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    wandb.init(project="selfrec_new", group=args['group'], job_type=args['job_type'],
+    run = wandb.init(project="swav_gcl", group=args['group'], job_type=args['job_type'],
                entity="oceanlvr", name=args['run_name'] or None, config=config)
     wandb.run.log_code(".")
 
@@ -63,3 +63,4 @@ if __name__ == '__main__':
 
     rec = SELFRec(wandb.config)
     rec.execute()
+    run.finish()
