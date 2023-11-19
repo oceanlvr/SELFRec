@@ -6,12 +6,7 @@ from base.graph_recommender import GraphRecommender
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss
-import faiss
 import wandb
-from sklearn.cluster import KMeans
-
-# paper: Improving Graph Collaborative Filtering with Neighborhood-enriched Contrastive Learning. WWW'22
-# 为了识别节点 (用户和项目)的语义邻居，HCCF 和 SwAVGCL 追求图结构相邻节点和语义邻居之间的一致表示。
 
 
 class SwAVGCL(GraphRecommender):
@@ -23,147 +18,96 @@ class SwAVGCL(GraphRecommender):
             self.config["model_config.eps"],
             self.config["model_config.num_layers"],
         )
-
-    def e_step(self):
-        user_embeddings = self.model.embedding_dict["user_emb"].detach().cpu().numpy()
-        item_embeddings = self.model.embedding_dict["item_emb"].detach().cpu().numpy()
-        self.user_centroids, self.user_2cluster = self.run_kmeans(user_embeddings)
-        self.item_centroids, self.item_2cluster = self.run_kmeans(item_embeddings)
-
-    def run_kmeans(self, x):
-        """Run K-means algorithm to get k clusters of the input tensor x"""
-        kmeans = faiss.Kmeans(
-            d=self.config["embedding_size"],
-            k=self.config["model_config.num_clusters"],
-            gpu=True,
+        self.user_prototypes = nn.Parameter(
+            torch.randn(
+                self.config["embedding_size"],
+                self.config["model_config.num_clusters"],
+            )
         )
-        kmeans.train(x)
-        cluster_cents = kmeans.centroids
-        _, I = kmeans.index.search(x, 1)
-        # convert to cuda Tensors for broadcast
-        centroids = torch.Tensor(cluster_cents).cuda()
-        node2cluster = torch.LongTensor(I).squeeze().cuda()
-        return centroids, node2cluster
-
-    def SwaVNCE_loss_1(self, initial_emb, user_idx, item_idx):
-        user_emb, item_emb = torch.split(
-            initial_emb, [self.data.user_num, self.data.item_num]
+        self.item_prototypes = nn.Parameter(
+            torch.randn(
+                self.config["embedding_size"],
+                self.config["model_config.num_clusters"],
+            )
         )
 
-        # Normalize embeddings
-        user_emb = F.normalize(user_emb, dim=1, p=2)
-        item_emb = F.normalize(item_emb, dim=1, p=2)
+    def cal_cl_loss(self, idx):
+        user_view_1, item_view_1 = self.model(perturbed=True)
+        user_view_2, item_view_2 = self.model(perturbed=True)
 
-        # Calculate similarity matrices 计算获得user-user,user-item相似矩阵
-        user_user_sim = user_emb[user_idx] @ user_emb.t()
-        user_item_sim = user_emb[user_idx] @ item_emb[item_idx].t()
+        user_z = torch.concat(user_view_1, user_view_2)
+        item_z = torch.concat(item_view_1, item_view_2)
 
-        # Getting the pseudo labels by using the highest similarity
-        _, user_pseudo_labels = user_user_sim.max(dim=1)
-        _, item_pseudo_labels = user_item_sim.max(dim=1)
+        user_loss = self.swav_loss(user_z, self.user_prototypes)
+        item_loss = self.swav_loss(item_z, self.item_prototypes)
+        cl_loss = user_loss + item_loss
+
+        # # 获取用户和物品的嵌入
+        # user_emb = user_embeddings[user_idx]
+        # item_emb = item_embeddings[item_idx]
+        # # 计算用户和物品的原型激活值
+        # user_proto_activations = torch.matmul(user_emb, self.user_prototypes)
+        # item_proto_activations = torch.matmul(item_emb, self.item_prototypes)
+        return cl_loss
+
+    def swav_loss(self, z, prototypes, temperature=0.1):
+        # Compute scores between embeddings and prototypes
+        scores = torch.mm(z, prototypes)
+
+        score_t = scores[: z.size(0) // 2]
+        score_s = scores[z.size(0) // 2 :]
+
+        # Apply the Sinkhorn-Knopp algorithm to get soft cluster assignments
+        q_t = self.sinkhorn_knopp(score_t)
+        q_s = self.sinkhorn_knopp(score_s)
+
+        log_p_t = torch.log_softmax(score_t / temperature, dim=1)
+        log_p_s = torch.log_softmax(score_s / temperature, dim=1)
 
         # Calculate cross-entropy loss
-        swav_nce_loss_user = F.cross_entropy(user_user_sim, user_pseudo_labels)
-        swav_nce_loss_item = F.cross_entropy(user_item_sim, item_pseudo_labels)
-        swav_nce_loss = self.config["model_config.proto_reg"] * (
-            swav_nce_loss_user + swav_nce_loss_item
-        )
-        return swav_nce_loss
-
-    def swavloss(self, user_idx, item_idx, temperature=0.1):
-        u_idx = torch.unique(torch.Tensor(user_idx).type(torch.long)).cuda()
-        i_idx = torch.unique(torch.Tensor(item_idx).type(torch.long)).cuda()
-        user_view_1, item_view_1, _ = self.model(perturbed=True)
-        user_view_2, item_view_2, _ = self.model(perturbed=True)
-
-        # Compute cluster assignment distributions for both views using Sinkhorn-Knopp
-        q_user_view_1 = self.sinkhorn_knopp(user_view_1 / temperature)
-        q_user_view_2 = self.sinkhorn_knopp(user_view_2 / temperature)
-        q_item_view_1 = self.sinkhorn_knopp(item_view_1 / temperature)
-        q_item_view_2 = self.sinkhorn_knopp(item_view_2 / temperature)
-
-        # Compute loss - Cross-entropy between soft assignments and features of the other view
-        loss_user = -torch.mean(
-            torch.sum(
-                q_user_view_1 * F.log_softmax(user_view_2 / temperature, dim=1),
+        loss_t = torch.mean(
+            -torch.sum(
+                q_s * log_p_t,
                 dim=1,
             )
         )
-        loss_user += -torch.mean(
-            torch.sum(
-                q_user_view_2 * F.log_softmax(user_view_1 / temperature, dim=1),
+        loss_s = torch.mean(
+            -torch.sum(
+                q_t * log_p_s,
                 dim=1,
             )
         )
 
-        loss_item = -torch.mean(
-            torch.sum(
-                q_item_view_1 * F.log_softmax(item_view_2 / temperature, dim=1),
-                dim=1,
-            )
-        )
-        loss_item += -torch.mean(
-            torch.sum(
-                q_item_view_2 * F.log_softmax(item_view_1 / temperature, dim=1),
-                dim=1,
-            )
-        )
+        # SwAV loss is the average of loss_t and loss_s
+        swav_loss = -((loss_t + loss_s) / 2)
+        return swav_loss
 
-        # 注意这里 proto_nce_loss_item 前面没有去加这个 alpha 系数
-        proto_nce_loss = self.config["model_config.proto_reg"] * (loss_user + loss_item)
-        return proto_nce_loss
-
-    def sinkhorn_knopp(self, log_Q, num_iters=3, epsilon=1e-3):
-        """
-        将输入矩阵log_Q转换为双随机形式。
-
-        :param log_Q: 输入矩阵的对数形式。
-        :param num_iters: Sinkhorn-Knopp算法迭代次数。
-        :param epsilon: 为了数值稳定性而加的小量。
-        :return: 调整后的双随机矩阵。
-        """
+    def sinkhorn_knopp(self, scores, epsilon=0.05, n_iters=3):
         with torch.no_grad():
-            device = log_Q.device  # Get the device from log_Q
-            Q = torch.exp(log_Q)  # Convert log probabilities to probabilities.
-            sum_Q = torch.sum(Q)
-            Q /= sum_Q  # Normalize Q
+            # 我们通常希望返回的矩阵Q的每一列代表一个样本的软聚类分配，而每一行对应一个聚类中心
+            Q = torch.exp(scores / epsilon).t()  # 用指数函数转换分数以获得正值
+            Q /= Q.sum(dim=1, keepdim=True)  # 归一化以使每行和为1
 
-            r = (
-                torch.ones(Q.shape[0], device=device) / Q.shape[0]
-            )  # Move r to the device of log_Q
-            c = (
-                torch.ones(Q.shape[1], device=device) / Q.shape[1]
-            )  # Move c to the device of log_Q
+            K, B = Q.shape  # K是聚类数量，B是批处理大小
+            u = torch.zeros(K).to(scores.device)  # 初始化u和r为0向量
+            r = torch.ones(K).to(scores.device) / K  # r是平均分配的目标向量
+            c = torch.ones(B).to(scores.device) / B  # c是平均分配的目标向量
 
-            curr_sum = torch.sum(Q, dim=1)
+            for _ in range(n_iters):
+                u = Q.sum(dim=1)  # 按行求和
+                Q *= (r / u).unsqueeze(1)  # 更新Q矩阵以满足行约束
+                Q *= (c / Q.sum(dim=0)).unsqueeze(0)  # 更新Q矩阵以满足列约束
 
-            for _ in range(num_iters):
-                # Update rows
-                Q *= (r / curr_sum).view(-1, 1)
-                Q /= torch.sum(Q, dim=0, keepdim=True)
-                Q /= torch.sum(Q, dim=1, keepdim=True)
-
-                # Update columns
-                curr_sum = torch.sum(Q, dim=1)
-                if torch.max(torch.abs(curr_sum - r)) < epsilon:
-                    # Break if the change is smaller than epsilon for numerical stability
-                    break
-
-            # Final normalization to avoid numerical issues
-            Q *= (r / curr_sum).view(-1, 1)
-            Q /= torch.sum(Q, dim=0, keepdim=True)
-
-            return torch.log(Q + epsilon)
+            return (Q / Q.sum(dim=0, keepdim=True)).t()  # 返回归一化后的Q矩阵
 
     def train(self):
         model = self.model.cuda()
-        optimizer = torch.optim.Adam(
-            model.parameters(), lr=self.config["learning_rate"]
-        )
-        for epoch in range(self.config["num_epochs"]):
-            for index, batch in enumerate(
-                next_batch_pairwise(self.data, self.config["batch_size"])
-            ):
+        batch_size = self.config["batch_size"]
+        num_epochs = self.config["num_epochs"]
+        lr = self.config["learning_rate"]
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        for epoch in range(num_epochs):
+            for index, batch in enumerate(next_batch_pairwise(self.data, batch_size)):
                 user_idx, pos_idx, neg_idx = batch
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
@@ -175,15 +119,15 @@ class SwAVGCL(GraphRecommender):
                     rec_item_emb[pos_idx],
                     rec_item_emb[neg_idx],
                 )
-                rec_loss = (
-                    bpr_loss(user_emb, pos_item_emb, neg_item_emb)
-                    + l2_reg_loss(
-                        self.config["lambda"], user_emb, pos_item_emb, neg_item_emb
-                    )
-                    / self.config["batch_size"]
-                )
 
-                cl_loss = self.swavloss(user_idx, pos_idx)
+                l2_loss = l2_reg_loss(self.config["lambda"], user_emb, pos_item_emb)
+                rec_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_loss
+
+                # Contrastive learning loss
+                # Swapping assignments between views loss
+                cl_loss = self.cal_cl_loss(
+                    rec_user_emb, rec_item_emb, user_idx, pos_idx
+                )
 
                 batch_loss = rec_loss + cl_loss
                 optimizer.zero_grad()

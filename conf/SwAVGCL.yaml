@@ -13,6 +13,7 @@ yelp2018:
   lambda: 0.0001
   output: ./results/
   # model config
+  model_config.layer_cl: 1
   model_config.eps: 0.2
   model_config.num_layers: 3
   model_config.hyper_layers: 1
@@ -37,6 +38,7 @@ iFashion:
   lambda: 0.0001
   output: ./results/
   # model config
+  model_config.layer_cl: 1
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
@@ -60,6 +62,8 @@ douban-book:
   lambda: 0.0001
   output: ./results/
   # model config
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
@@ -83,6 +87,8 @@ amazon-kindle:
   lambda: 0.0001
   output: ./results/
   # model config
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
@@ -106,6 +112,8 @@ ml-1M:
   lambda: 0.0001
   output: ./results/
   # model config
+  model_config.layer_cl: 1
+  model_config.lambda: 0.2
   model_config.num_layers: 3
   model_config.hyper_layers: 1
   model_config.ssl_reg: 0.000001
