@@ -51,12 +51,11 @@ if __name__ == '__main__':
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    run = wandb.init(project="swav_gcl", group=args['group'], job_type=args['job_type'],
+    run = wandb.init(project="gcl_random_seed", group=args['group'], job_type=args['job_type'],
                entity="oceanlvr", name=args['run_name'] or None, config=config)
     wandb.run.log_code(".")
 
-    if wandb.config['model'] is not 'SGL':
-        fix_random_seed(wandb.config['seed'])
+    # fix_random_seed(wandb.config['seed'])
     print('='*10, 'wandb.config', '='*10)
     print(wandb.config)
     print('='*10, 'wandb.config', '='*10)

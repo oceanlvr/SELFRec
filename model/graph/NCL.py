@@ -49,12 +49,12 @@ class NCL(GraphRecommender):
     def ProtoNCE_loss(self, initial_emb, user_idx, item_idx):
         user_emb, item_emb = torch.split(initial_emb, [self.data.user_num, self.data.item_num])
 
-        user2cluster = self.user_2cluster[user_idx] # only change this dict
-        user2centroids = self.user_centroids[user2cluster]
+        user2clusterIdx = self.user_2cluster[user_idx] # only change this dict
+        user2centroids = self.user_centroids[user2clusterIdx]
         proto_nce_loss_user = InfoNCE(user_emb[user_idx], user2centroids, self.config['model_config.temperature']) * self.config['batch_size']
 
-        item2cluster = self.item_2cluster[item_idx]
-        item2centroids = self.item_centroids[item2cluster]
+        item2clusterIdx = self.item_2cluster[item_idx]
+        item2centroids = self.item_centroids[item2clusterIdx]
         proto_nce_loss_item = InfoNCE(item_emb[item_idx], item2centroids, self.config['model_config.temperature']) * self.config['batch_size']
 
         # 注意这里 proto_nce_loss_item 前面没有去加这个 alpha 系数

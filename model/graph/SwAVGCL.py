@@ -23,32 +23,33 @@ class SwAVGCL(GraphRecommender):
                 self.config["embedding_size"],
                 self.config["model_config.num_clusters"],
             )
-        )
+        ).to(self.device)
         self.item_prototypes = nn.Parameter(
             torch.randn(
                 self.config["embedding_size"],
                 self.config["model_config.num_clusters"],
             )
-        )
+        ).to(self.device)
+        nn.init.xavier_uniform_(self.user_prototypes)
+        nn.init.xavier_uniform_(self.item_prototypes)
 
-    def cal_cl_loss(self, idx):
-        user_view_1, item_view_1 = self.model(perturbed=True)
-        user_view_2, item_view_2 = self.model(perturbed=True)
 
-        user_z = torch.concat(user_view_1, user_view_2)
-        item_z = torch.concat(item_view_1, item_view_2)
+    def cal_cl_loss(self, idx, temperature):
+        u_idx = torch.unique(torch.Tensor(idx[0]).type(torch.long)).cuda()
+        i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
 
-        user_loss = self.swav_loss(user_z, self.user_prototypes)
-        item_loss = self.swav_loss(item_z, self.item_prototypes)
+        model = self.model.cuda()
+
+        user_view_1, item_view_1 = model(perturbed=True)
+        user_view_2, item_view_2 = model(perturbed=True)
+
+        user_z = torch.concat([user_view_1[u_idx], user_view_2[u_idx]], dim=0)
+        item_z = torch.concat([item_view_1[i_idx], item_view_2[i_idx]], dim=0)
+
+        user_loss = self.swav_loss(user_z, self.user_prototypes, temperature=temperature)
+        item_loss = self.swav_loss(item_z, self.item_prototypes, temperature=temperature)
         cl_loss = user_loss + item_loss
-
-        # # 获取用户和物品的嵌入
-        # user_emb = user_embeddings[user_idx]
-        # item_emb = item_embeddings[item_idx]
-        # # 计算用户和物品的原型激活值
-        # user_proto_activations = torch.matmul(user_emb, self.user_prototypes)
-        # item_proto_activations = torch.matmul(item_emb, self.item_prototypes)
-        return cl_loss
+        return self.config['model_config.proto_reg'] * cl_loss
 
     def swav_loss(self, z, prototypes, temperature=0.1):
         # Compute scores between embeddings and prototypes
@@ -77,9 +78,8 @@ class SwAVGCL(GraphRecommender):
                 dim=1,
             )
         )
-
         # SwAV loss is the average of loss_t and loss_s
-        swav_loss = -((loss_t + loss_s) / 2)
+        swav_loss = (loss_t + loss_s) / 2
         return swav_loss
 
     def sinkhorn_knopp(self, scores, epsilon=0.05, n_iters=3):
@@ -111,7 +111,7 @@ class SwAVGCL(GraphRecommender):
                 user_idx, pos_idx, neg_idx = batch
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
-                rec_user_emb, rec_item_emb, _ = model()
+                rec_user_emb, rec_item_emb = model()
 
                 # 推荐的brp损失+l2损失
                 user_emb, pos_item_emb, neg_item_emb = (
@@ -125,9 +125,7 @@ class SwAVGCL(GraphRecommender):
 
                 # Contrastive learning loss
                 # Swapping assignments between views loss
-                cl_loss = self.cal_cl_loss(
-                    rec_user_emb, rec_item_emb, user_idx, pos_idx
-                )
+                cl_loss = self.cal_cl_loss([user_idx, pos_idx], self.config["model_config.temperature"])
 
                 batch_loss = rec_loss + cl_loss
                 optimizer.zero_grad()
@@ -154,13 +152,13 @@ class SwAVGCL(GraphRecommender):
                         cl_loss.item(),
                     )
             with torch.no_grad():
-                self.user_emb, self.item_emb, _ = model()
+                self.user_emb, self.item_emb = model()
             self.fast_evaluation(epoch)
         self.user_emb, self.item_emb = self.best_user_emb, self.best_item_emb
 
     def save(self):
         with torch.no_grad():
-            self.best_user_emb, self.best_item_emb, _ = self.model()
+            self.best_user_emb, self.best_item_emb = self.model()
 
     def predict(self, u):
         u = self.data.get_user_id(u)
@@ -177,42 +175,26 @@ class LGCN_Encoder(nn.Module):
         self.n_layers = n_layers
         self.norm_adj = data.norm_adj
         self.embedding_dict = self._init_model()
-        self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(
-            self.norm_adj
-        ).cuda()
+        self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(self.norm_adj).cuda()
 
     def _init_model(self):
         initializer = nn.init.xavier_uniform_
-        embedding_dict = nn.ParameterDict(
-            {
-                "user_emb": nn.Parameter(
-                    initializer(torch.empty(self.data.user_num, self.emb_size))
-                ),
-                "item_emb": nn.Parameter(
-                    initializer(torch.empty(self.data.item_num, self.emb_size))
-                ),
-            }
-        )
+        embedding_dict = nn.ParameterDict({
+            'user_emb': nn.Parameter(initializer(torch.empty(self.data.user_num, self.emb_size))),
+            'item_emb': nn.Parameter(initializer(torch.empty(self.data.item_num, self.emb_size))),
+        })
         return embedding_dict
 
     def forward(self, perturbed=False):
-        ego_embeddings = torch.cat(
-            [self.embedding_dict["user_emb"], self.embedding_dict["item_emb"]], 0
-        )
+        ego_embeddings = torch.cat([self.embedding_dict['user_emb'], self.embedding_dict['item_emb']], 0)
         all_embeddings = []
         for k in range(self.n_layers):
             ego_embeddings = torch.sparse.mm(self.sparse_norm_adj, ego_embeddings)
             if perturbed:
                 random_noise = torch.rand_like(ego_embeddings).cuda()
-                ego_embeddings += (
-                    torch.sign(ego_embeddings)
-                    * F.normalize(random_noise, dim=-1)
-                    * self.eps
-                )
+                ego_embeddings += torch.sign(ego_embeddings) * F.normalize(random_noise, dim=-1) * self.eps
             all_embeddings.append(ego_embeddings)
         all_embeddings = torch.stack(all_embeddings, dim=1)
         all_embeddings = torch.mean(all_embeddings, dim=1)
-        user_all_embeddings, item_all_embeddings = torch.split(
-            all_embeddings, [self.data.user_num, self.data.item_num]
-        )
-        return user_all_embeddings, item_all_embeddings, all_embeddings
+        user_all_embeddings, item_all_embeddings = torch.split(all_embeddings, [self.data.user_num, self.data.item_num])
+        return user_all_embeddings, item_all_embeddings
