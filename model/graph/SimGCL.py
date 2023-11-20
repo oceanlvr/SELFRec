@@ -6,6 +6,7 @@ from base.graph_recommender import GraphRecommender
 from util.sampler import next_batch_pairwise
 from base.torch_interface import TorchGraphInterface
 from util.loss_torch import bpr_loss, l2_reg_loss, InfoNCE
+import wandb
 
 # Paper: Are graph augmentations necessary? simple graph contrastive learning for recommendation. SIGIR'22
 
@@ -35,6 +36,12 @@ class SimGCL(GraphRecommender):
                 optimizer.zero_grad()
                 batch_loss.backward()
                 optimizer.step()
+                wandb.log({
+                    'epoch': epoch + 1,
+                    'batch_loss': batch_loss.item(),
+                    'rec_loss': rec_loss.item(),
+                    'cl_loss': cl_loss.item(),
+                })
                 if n % 100==0:
                     print('training:', epoch + 1, 'batch', n, 'rec_loss:', rec_loss.item(), 'cl_loss', cl_loss.item())
             with torch.no_grad():

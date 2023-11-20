@@ -3,6 +3,5 @@ wandb/*
 results/*
 *.log
 nohup.out
-sweep/*
 *.png
 .env
