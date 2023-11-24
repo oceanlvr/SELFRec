@@ -21,7 +21,7 @@ class LightGCN(GraphRecommender):
                 user_idx, pos_idx, neg_idx = batch
                 rec_user_emb, rec_item_emb = model()
                 user_emb, pos_item_emb, neg_item_emb = rec_user_emb[user_idx], rec_item_emb[pos_idx], rec_item_emb[neg_idx]
-                batch_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_reg_loss(self.config['lambda'], user_emb,pos_item_emb,neg_item_emb)/self.config['batch_size']
+                batch_loss = bpr_loss(user_emb, pos_item_emb, neg_item_emb) + l2_reg_loss(self.config['lambda'], user_emb,pos_item_emb,neg_item_emb) / self.config['batch_size']
                 # Backward and optimize
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -34,11 +34,8 @@ class LightGCN(GraphRecommender):
                     print('training:', epoch + 1, 'batch', n, 'batch_loss:', batch_loss.item())
             with torch.no_grad():
                 self.user_emb, self.item_emb = model()
-            if epoch % 5 == 0:
-                self.fast_evaluation(epoch)
+            self.fast_evaluation(epoch)
         self.user_emb, self.item_emb = self.best_user_emb, self.best_item_emb
-
-
 
     def save(self):
         with torch.no_grad():

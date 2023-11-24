@@ -7,9 +7,9 @@ yelp2018:
     - 20
     - 50
   embedding_size: 64
-  num_epochs: 120
+  num_epochs: 150
   batch_size: 2048
-  learning_rate: 0.001
+  learning_rate: 0.0002
   lambda: 0.0001
   output: ./results/
   model_config.num_layers: 3

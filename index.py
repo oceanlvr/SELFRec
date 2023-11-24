@@ -51,7 +51,7 @@ if __name__ == '__main__':
     config_path = composePath(args['root'], 'conf', args['model'] + '.yaml')
     config = yaml.load(open(config_path), Loader=SafeLoader)[args['dataset']]
     config = mergeDict(config, args)
-    run = wandb.init(project="gcl_random_seed", group=args['group'], job_type=args['job_type'],
+    run = wandb.init(project="gcl_same_scaler", group=args['group'], job_type=args['job_type'],
                entity="oceanlvr", name=args['run_name'] or None, config=config)
     wandb.run.log_code(".")
 

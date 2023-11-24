@@ -17,21 +17,20 @@ class SwAVGCL(GraphRecommender):
             self.config["embedding_size"],
             self.config["model_config.eps"],
             self.config["model_config.num_layers"],
-            self.config["model_config.num_clusters"]
+            self.config["model_config.num_clusters"],
+            self.config['model_config.layer_cl']
         )
 
-    def cal_cl_loss(self, idx, prototypes, temperature):
+    def cal_cl_loss(self, idx, user_emb, item_emb, prototypes, temperature):
         u_idx = torch.unique(torch.Tensor(idx[0]).type(torch.long)).cuda()
         i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
+
+        rec_user_emb, cl_user_emb = user_emb[0], user_emb[1]
+        rec_item_emb,cl_item_emb = item_emb[0], item_emb[1]
         user_prototypes, item_prototypes = prototypes[0], prototypes[1]
 
-        model = self.model.cuda()
-
-        user_view_1, item_view_1 = model(perturbed=True)
-        user_view_2, item_view_2 = model(perturbed=True)
-
-        user_z = torch.cat([user_view_1[u_idx], user_view_2[u_idx]], dim=0)
-        item_z = torch.cat([item_view_1[i_idx], item_view_2[i_idx]], dim=0)
+        user_z = torch.cat([rec_user_emb[u_idx], cl_user_emb[u_idx]], dim=0)
+        item_z = torch.cat([rec_item_emb[i_idx], cl_item_emb[i_idx]], dim=0)
 
         user_loss = self.swav_loss(user_z, user_prototypes, temperature=temperature)
         item_loss = self.swav_loss(item_z, item_prototypes, temperature=temperature)
@@ -100,7 +99,7 @@ class SwAVGCL(GraphRecommender):
                 user_idx, pos_idx, neg_idx = batch
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
-                rec_user_emb, rec_item_emb, user_prototypes, item_prototypes = model()
+                rec_user_emb, rec_item_emb, cl_user_emb, cl_item_emb, user_prototypes, item_prototypes  = model(True)
 
                 # 推荐的brp损失+l2损失
                 user_emb, pos_item_emb, neg_item_emb = (
@@ -114,7 +113,7 @@ class SwAVGCL(GraphRecommender):
 
                 # Contrastive learning loss
                 # Swapping assignments between views loss
-                cl_loss = self.cal_cl_loss([user_idx, pos_idx], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
+                cl_loss = self.cal_cl_loss([user_idx, pos_idx],[rec_user_emb, cl_user_emb], [rec_item_emb, cl_item_emb], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
 
                 batch_loss = rec_loss + cl_loss
 
@@ -143,13 +142,13 @@ class SwAVGCL(GraphRecommender):
                         cl_loss.item(),
                     )
             with torch.no_grad():
-                self.user_emb, self.item_emb = model()
+                self.user_emb, self.item_emb, _, _ = model()
             self.fast_evaluation(epoch)
         self.user_emb, self.item_emb = self.best_user_emb, self.best_item_emb
 
     def save(self):
         with torch.no_grad():
-            self.best_user_emb, self.best_item_emb = self.model()
+            self.best_user_emb, self.best_item_emb, _, _ = self.model()
 
     def predict(self, u):
         u = self.data.get_user_id(u)
@@ -158,7 +157,7 @@ class SwAVGCL(GraphRecommender):
 
 
 class LGCN_Encoder(nn.Module):
-    def __init__(self, data, emb_size, eps, n_layers, prototype_num):
+    def __init__(self, data, emb_size, eps, n_layers, prototype_num, layer_cl):
         super(LGCN_Encoder, self).__init__()
         self.data = data
         self.eps = eps
@@ -166,10 +165,10 @@ class LGCN_Encoder(nn.Module):
         self.n_layers = n_layers
         self.norm_adj = data.norm_adj
         self.prototype_num = prototype_num
+        self.layer_cl = layer_cl
         self.embedding_dict = self._init_model()
-        self.user_prototypes = self._init_prototypes()
+        self.prototypes_dict = self._init_prototypes()
         self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(self.norm_adj).cuda()
-
 
     def _init_model(self):
         initializer = nn.init.xavier_uniform_
@@ -190,15 +189,21 @@ class LGCN_Encoder(nn.Module):
     def forward(self, perturbed=False):
         ego_embeddings = torch.cat([self.embedding_dict['user_emb'], self.embedding_dict['item_emb']], 0)
         all_embeddings = []
+        all_embeddings_cl = ego_embeddings
         for k in range(self.n_layers):
             ego_embeddings = torch.sparse.mm(self.sparse_norm_adj, ego_embeddings)
             if perturbed:
                 random_noise = torch.rand_like(ego_embeddings).cuda()
                 ego_embeddings += torch.sign(ego_embeddings) * F.normalize(random_noise, dim=-1) * self.eps
             all_embeddings.append(ego_embeddings)
-        all_embeddings = torch.stack(all_embeddings, dim=1)
-        all_embeddings = torch.mean(all_embeddings, dim=1)
-        user_all_embeddings, item_all_embeddings = torch.split(all_embeddings, [self.data.user_num, self.data.item_num])
+            if k==self.layer_cl-1:
+                all_embeddings_cl = ego_embeddings
+        final_embeddings = torch.stack(all_embeddings, dim=1)
+        final_embeddings = torch.mean(final_embeddings, dim=1)
+        user_all_embeddings, item_all_embeddings = torch.split(final_embeddings, [self.data.user_num, self.data.item_num])
+        user_all_embeddings_cl, item_all_embeddings_cl = torch.split(all_embeddings_cl, [self.data.user_num, self.data.item_num])
         user_prototypes = self.prototypes_dict['user_prototypes']
         item_prototypes = self.prototypes_dict['item_prototypes']
-        return user_all_embeddings, item_all_embeddings, user_prototypes, item_prototypes
+        if perturbed:
+            return user_all_embeddings, item_all_embeddings,user_all_embeddings_cl, item_all_embeddings_cl,user_prototypes,item_prototypes
+        return user_all_embeddings, item_all_embeddings,user_prototypes,item_prototypes
