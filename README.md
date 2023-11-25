@@ -217,10 +217,9 @@ If you find this repo helpful to your research, please cite our paper.
 
 
 ## RUN
-nohup python index.py --gpu_id=0 --model=NCL --dataset=yelp2018 > ./0.log 2>&1 &
 
 ```shell
-nohup python index.py --gpu_id=0 --model=SGL --dataset=iFashion > ./0.log 2>&1 &
+nohup python index.py --gpu_id=0 --model=SwAVGCL --run_name=SwAVGCL --dataset=yelp2018 > ./0.log 2>&1 &
 nohup python index.py --gpu_id=1 --model=SGL --dataset=iFashion > ./1.log 2>&1 &
 nohup python index.py --gpu_id=2 --model=SGL --dataset=yelp2018 > ./2.log 2>&1 &
 nohup python index.py --gpu_id=3 --model=SGL --dataset=yelp2018 > ./3.log 2>&1 &

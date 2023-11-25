@@ -91,7 +91,6 @@ class GraphRecommender(Recommender):
         rankings = [int(num) for num in self.config['ranking']]
         self.result = ranking_evaluation(self.data.test_set, rec_list, rankings)
 
-        wandb.log({'finnal_result': self.result})
         FileIO.write_file(out_dir, file_name, str(self.result))
         print('The result of %s:\n%s' %
               (self.config['name'], ''.join(str(self.result))))
@@ -100,8 +99,10 @@ class GraphRecommender(Recommender):
         max_rank_metric = measure[max(self.config['ranking'])]
         # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
         count = 0
-        for k in self.bestPerformance['metric']:
-            if self.bestPerformance['metric'][k] > max_rank_metric[k]:
+        for k in max_rank_metric:
+            if k not in self.bestPerformance['metric']:
+                self.bestPerformance['metric'][k] = -1
+            if self.bestPerformance['metric'][k] < max_rank_metric[k]:
                 count += 1
             else:
                 count -= 1
@@ -118,12 +119,13 @@ class GraphRecommender(Recommender):
                 'hasRecord': True
             }
             self.bestPerformance = bestPerformance
-            # wandb.alert(
-            #     title="Updated bestPerformance", 
-            #     text=f"Accuracy {acc} is below the acceptable threshold {threshold}",
-            #     level=AlertLevel.INFO,
-            #     wait_duration=300
-            # )
+            wandb.log({**bestPerformance['metric'],'epoch':epoch})
+            wandb.alert(
+                title="Updated bestPerformance", 
+                text=f"Epoch: f{epoch}, metrics: {max_rank_metric}",
+                level=AlertLevel.INFO,
+                wait_duration=300
+            )
             self.save()
 
     def fast_evaluation(self, epoch):
