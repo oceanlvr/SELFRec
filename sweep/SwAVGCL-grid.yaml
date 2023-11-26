@@ -1,8 +1,7 @@
 # config.yaml
 program: /workspace/index.py
-method: bayes
+method: grid
 name: SWAVGCL-yelp2018
-run_cap: 20
 command:
   - ${env}
   - ${interpreter}
@@ -19,14 +18,8 @@ metric:
   name: best.Recall@50
 parameters:
   model_config.temperature:
-    max: 0.2
-    min: 0.02
-    distribution: uniform
+    values: [0.025, 0.05, 0.1, 0.2, 0.5]
   model_config.proto_reg:
-    max: 1e-1
-    min: 1e-4
-    distribution: uniform
+    values: [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
   model_config.eps:
-    max: 0.4
-    min: 0.05
-    distribution: uniform
+    values: [5e-2, 1e-1, 5e-1]

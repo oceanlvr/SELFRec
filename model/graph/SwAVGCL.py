@@ -113,7 +113,10 @@ class SwAVGCL(GraphRecommender):
 
                 # Contrastive learning loss
                 # Swapping assignments between views loss
-                cl_loss = self.cal_cl_loss([user_idx, pos_idx],[rec_user_emb, cl_user_emb], [rec_item_emb, cl_item_emb], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
+                cl_loss = torch.zeros_like(rec_loss)
+
+                if epoch >=20: # warm_up
+                    cl_loss = self.cal_cl_loss([user_idx, pos_idx],[rec_user_emb, cl_user_emb], [rec_item_emb, cl_item_emb], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
 
                 batch_loss = rec_loss + cl_loss
 
