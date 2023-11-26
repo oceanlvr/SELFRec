@@ -96,13 +96,14 @@ class GraphRecommender(Recommender):
               (self.config['name'], ''.join(str(self.result))))
 
     def update_bestPerformance(self, measure, epoch):
-        max_rank_metric = measure[max(self.config['ranking'])]
+        maxRk = max(self.config['ranking'])
+        max_rank_metric = measure[maxRk]
         # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
         count = 0
         for k in max_rank_metric:
-            if k not in self.bestPerformance['metric']:
-                self.bestPerformance['metric'][k] = -1
-            if self.bestPerformance['metric'][k] < max_rank_metric[k]:
+            if k not in self.bestPerformance['metric'][maxRk]:
+                self.bestPerformance['metric'][maxRk][k] = -1
+            if self.bestPerformance['metric'][maxRk][k] < max_rank_metric[k]:
                 count += 1
             else:
                 count -= 1
@@ -114,18 +115,22 @@ class GraphRecommender(Recommender):
             }
             bestPerformance = {
                 'epoch': epoch,
-                'metric': max_rank_metric,
+                'metric': measure,
                 'addon': addon,
                 'hasRecord': True
             }
             self.bestPerformance = bestPerformance
-            wandb.log({**bestPerformance['metric'],'epoch':epoch})
-            wandb.alert(
-                title="Updated bestPerformance", 
-                text=f"Epoch: f{epoch}, metrics: {max_rank_metric}",
-                level=AlertLevel.INFO,
-                wait_duration=300
-            )
+            logPerformance = {'epoch':epoch}
+            for top in measure:
+                for metric in measure[top]:
+                    logPerformance['best.'+metric+'@'+top] = measure[top][metric]
+            wandb.log(logPerformance)
+            # wandb.alert(
+            #     title="Updated bestPerformance", 
+            #     text=f"Epoch: f{epoch}, metrics: {max_rank_metric}",
+            #     level=AlertLevel.INFO,
+            #     wait_duration=300
+            # )
             self.save()
 
     def fast_evaluation(self, epoch):

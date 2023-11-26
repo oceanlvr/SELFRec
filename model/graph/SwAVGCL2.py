@@ -9,22 +9,19 @@ from util.loss_torch import bpr_loss, l2_reg_loss
 import wandb
 
 
-class SwAVGCL(GraphRecommender):
+class SwAVGCL2(GraphRecommender):
     def __init__(self, conf, training_set, test_set):
-        super(SwAVGCL, self).__init__(conf, training_set, test_set)
+        super(SwAVGCL2, self).__init__(conf, training_set, test_set)
         self.model = LGCN_Encoder(
             self.data,
             self.config["embedding_size"],
-            self.config["model_config.eps"],
             self.config["model_config.num_layers"],
             self.config["model_config.num_clusters"],
-            self.config['model_config.layer_cl']
         )
 
     def cal_cl_loss(self, idx, user_emb, item_emb, prototypes, temperature):
         u_idx = torch.unique(torch.Tensor(idx[0]).type(torch.long)).cuda()
         i_idx = torch.unique(torch.Tensor(idx[1]).type(torch.long)).cuda()
-
         rec_user_emb, cl_user_emb = user_emb[0], user_emb[1]
         rec_item_emb,cl_item_emb = item_emb[0], item_emb[1]
         user_prototypes, item_prototypes = prototypes[0], prototypes[1]
@@ -51,6 +48,12 @@ class SwAVGCL(GraphRecommender):
 
         log_p_t = torch.log_softmax(score_t / temperature + 1e-7, dim=1)
         log_p_s = torch.log_softmax(score_s / temperature + 1e-7, dim=1)
+        # print('score_t.shape',score_t.shape)
+        # print('log_p_t.shape',log_p_t.shape)
+        # print('q_s.shape',q_s.shape)
+        # score_t.shape torch.Size([1909, 2000])
+        # log_p_t.shape torch.Size([1909, 2000])
+        # q_s.shape torch.Size([1909, 2000])
 
         # Calculate cross-entropy loss
         loss_t = torch.mean(
@@ -74,6 +77,7 @@ class SwAVGCL(GraphRecommender):
             # 我们通常希望返回的矩阵Q的每一列代表一个样本的软聚类分配，而每一行对应一个聚类中心
             # 如果没有使用转置，即没有.T，那么Q矩阵的每一行代表一个样本的软分配，每一列代表一个聚类中心的分配
             Q = torch.exp(scores / epsilon).t()  # 用指数函数转换分数以获得正值
+            # print('Q.shape',Q.shape)  Q.shape torch.Size([2000, 1909])
             Q /= Q.sum(dim=1, keepdim=True)  # 归一化以使每行和为1
 
             K, B = Q.shape  # K是聚类数量，B是批处理大小
@@ -99,7 +103,7 @@ class SwAVGCL(GraphRecommender):
                 user_idx, pos_idx, neg_idx = batch
 
                 # brp 损失 LGCN 部分 emb_list 是 all_emb
-                rec_user_emb, rec_item_emb, cl_user_emb, cl_item_emb, user_prototypes, item_prototypes = model(True)
+                rec_user_emb, rec_item_emb, cl_user_emb, cl_item_emb, user_prototypes, item_prototypes  = model()
 
                 # 推荐的brp损失+l2损失
                 user_emb, pos_item_emb, neg_item_emb = (
@@ -142,13 +146,13 @@ class SwAVGCL(GraphRecommender):
                         cl_loss.item(),
                     )
             with torch.no_grad():
-                self.user_emb, self.item_emb, _, _ = model()
+                self.user_emb, self.item_emb,_,_, _, _ = model()
             self.fast_evaluation(epoch)
         self.user_emb, self.item_emb = self.best_user_emb, self.best_item_emb
 
     def save(self):
         with torch.no_grad():
-            self.best_user_emb, self.best_item_emb, _, _ = self.model()
+            self.best_user_emb, self.best_item_emb,_,_, _, _ = self.model()
 
     def predict(self, u):
         u = self.data.get_user_id(u)
@@ -157,15 +161,13 @@ class SwAVGCL(GraphRecommender):
 
 
 class LGCN_Encoder(nn.Module):
-    def __init__(self, data, emb_size, eps, n_layers, prototype_num, layer_cl):
+    def __init__(self, data, emb_size,n_layers, prototype_num):
         super(LGCN_Encoder, self).__init__()
         self.data = data
-        self.eps = eps
         self.emb_size = emb_size
-        self.n_layers = n_layers
+        self.layers = n_layers
         self.norm_adj = data.norm_adj
         self.prototype_num = prototype_num
-        self.layer_cl = layer_cl
         self.embedding_dict = self._init_model()
         self.prototypes_dict = self._init_prototypes()
         self.sparse_norm_adj = TorchGraphInterface.convert_sparse_mat_to_tensor(self.norm_adj).cuda()
@@ -186,24 +188,21 @@ class LGCN_Encoder(nn.Module):
         })
         return prototypes_dict
 
-    def forward(self, perturbed=False):
+    def forward(self):
         ego_embeddings = torch.cat([self.embedding_dict['user_emb'], self.embedding_dict['item_emb']], 0)
-        all_embeddings = []
-        all_embeddings_cl = ego_embeddings
-        for k in range(self.n_layers):
+        all_embeddings = [ego_embeddings]
+        for k in range(self.layers):
             ego_embeddings = torch.sparse.mm(self.sparse_norm_adj, ego_embeddings)
-            if perturbed:
-                random_noise = torch.rand_like(ego_embeddings).cuda()
-                ego_embeddings += torch.sign(ego_embeddings) * F.normalize(random_noise, dim=-1) * self.eps
-            all_embeddings.append(ego_embeddings)
-            if k==self.layer_cl-1:
-                all_embeddings_cl = ego_embeddings
-        final_embeddings = torch.stack(all_embeddings, dim=1)
-        final_embeddings = torch.mean(final_embeddings, dim=1)
-        user_all_embeddings, item_all_embeddings = torch.split(final_embeddings, [self.data.user_num, self.data.item_num])
-        user_all_embeddings_cl, item_all_embeddings_cl = torch.split(all_embeddings_cl, [self.data.user_num, self.data.item_num])
+            all_embeddings += [ego_embeddings]
+        lgcn_all_embeddings = torch.stack(all_embeddings, dim=1)
+        lgcn_all_embeddings = torch.mean(lgcn_all_embeddings, dim=1)
+
+        user_all_embeddings = lgcn_all_embeddings[:self.data.user_num]
+        item_all_embeddings = lgcn_all_embeddings[self.data.user_num:]
+
+        user_all_embeddings_cl = all_embeddings[0][:self.data.user_num]
+        item_all_embeddings_cl = all_embeddings[0][self.data.user_num:]
+
         user_prototypes = self.prototypes_dict['user_prototypes']
         item_prototypes = self.prototypes_dict['item_prototypes']
-        if perturbed:
-            return user_all_embeddings, item_all_embeddings,user_all_embeddings_cl, item_all_embeddings_cl,user_prototypes,item_prototypes
-        return user_all_embeddings, item_all_embeddings,user_prototypes,item_prototypes
+        return user_all_embeddings, item_all_embeddings, user_all_embeddings_cl, item_all_embeddings_cl,user_prototypes,item_prototypes

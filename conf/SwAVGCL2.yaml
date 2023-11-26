@@ -1,5 +1,5 @@
 yelp2018:
-  name: SwAVGCLv2
+  name: SwAVGCL2
   seed: 12345
   type: graph
   ranking: 
@@ -14,12 +14,12 @@ yelp2018:
   output: ./results/
   # model config
   model_config.num_layers: 3
-  model_config.lambda: 0.2
-  model_config.eps: 0.2
-  model_config.tau: 0.15
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.num_clusters: 2000
 
 iFashion:
-  name: SwAVGCLv2
+  name: SwAVGCL2
   seed: 12345
   type: graph
   ranking: 
@@ -34,12 +34,13 @@ iFashion:
   output: ./results/
   # model config
   model_config.num_layers: 3
-  model_config.lambda: 0.2
-  model_config.eps: 0.2
-  model_config.tau: 0.15
+  model_config.layer_cl: 1
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.num_clusters: 2000
 
 douban-book:
-  name: SwAVGCLv2
+  name: SwAVGCL2
   seed: 12345
   type: graph
   ranking: 
@@ -53,13 +54,14 @@ douban-book:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config.num_layers: 3
   model_config.lambda: 0.2
-  model_config.eps: 0.2
-  model_config.tau: 0.15
+  model_config.num_layers: 3
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.num_clusters: 2000
 
 amazon-kindle:
-  name: SwAVGCLv2
+  name: SwAVGCL2
   seed: 12345
   type: graph
   ranking: 
@@ -73,13 +75,15 @@ amazon-kindle:
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config.num_layers: 3
   model_config.lambda: 0.2
-  model_config.eps: 0.2
-  model_config.tau: 0.15
+  model_config.layer_cl: 1
+  model_config.num_layers: 3
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.05
+  model_config.num_clusters: 2000
 
 ml-1M:
-  name: SwAVGCLv2
+  name: SwAVGCL2
   seed: 12345
   type: graph
   ranking: 
@@ -88,12 +92,13 @@ ml-1M:
     - 50
   embedding_size: 64
   num_epochs: 120
-  batch_size: 2048
-  learning_rate: 0.001
+  batch_size: 4096
+  learning_rate: 0.002
   lambda: 0.0001
   output: ./results/
   # model config
-  model_config.num_layers: 3
   model_config.lambda: 0.2
-  model_config.eps: 0.2
-  model_config.tau: 0.15
+  model_config.num_layers: 3
+  model_config.proto_reg: 0.0000001
+  model_config.temperature: 0.1
+  model_config.num_clusters: 2000

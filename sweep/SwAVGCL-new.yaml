@@ -2,31 +2,29 @@
 program: /workspace/index.py
 method: bayes
 name: SWAVGCL-yelp2018
-run_cap: 50
+run_cap: 500
 command:
   - ${env}
   - ${interpreter}
   - ${program}
   - "--model"
-  - "SwAVGCL"
+  - "SwAVGCL2"
   - "--gpu_id"
   - "0"
   - "--dataset"
   - "yelp2018"
   - ${args}
 metric:
-  goal: minimize
-  name: batch_loss
+  goal: maximize
+  name: best.Recall@50
 parameters:
   model_config.temperature:
-    max: 0.2
-    min: 0.02
+    max: 0.10
+    min: 0.025
     distribution: uniform
   model_config.proto_reg:
-    max: 1e-1
-    min: 1e-4
+    max: 2e-4
+    min: 2e-8
     distribution: uniform
-  model_config.eps:
-    max: 0.4
-    min: 0.05
-    distribution: uniform
+  model_config.num_clusters: 
+    values: [1000, 1500, 2000]
