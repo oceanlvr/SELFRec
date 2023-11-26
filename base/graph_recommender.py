@@ -101,6 +101,8 @@ class GraphRecommender(Recommender):
         # 如果当前的性能比之前的好，就更新最好的性能。这里的好是指好的指标的数量比差的指标多
         count = 0
         for k in max_rank_metric:
+            if maxRk not in self.bestPerformance['metric']:
+                self.bestPerformance['metric'][maxRk] = {}
             if k not in self.bestPerformance['metric'][maxRk]:
                 self.bestPerformance['metric'][maxRk][k] = -1
             if self.bestPerformance['metric'][maxRk][k] < max_rank_metric[k]:
@@ -123,7 +125,7 @@ class GraphRecommender(Recommender):
             logPerformance = {'epoch':epoch}
             for top in measure:
                 for metric in measure[top]:
-                    logPerformance['best.'+metric+'@'+top] = measure[top][metric]
+                    logPerformance['best.'+metric+'@'+str(top)] = measure[top][metric]
             wandb.log(logPerformance)
             # wandb.alert(
             #     title="Updated bestPerformance", 
@@ -169,17 +171,17 @@ class GraphRecommender(Recommender):
                 log_info[str(name)+'@'+str(topk)] = value
         wandb.log(log_info)
 
-        bp = ''
-        curBestPerformanceMetric = self.bestPerformance['metric']
-        bp += 'Hit Ratio' + ':' + \
-            str(curBestPerformanceMetric['Hit Ratio']) + ' | '
-        bp += 'Precision' + ':' + \
-            str(curBestPerformanceMetric['Precision']) + ' | '
-        bp += 'Recall' + ':' + str(curBestPerformanceMetric['Recall']) + ' | '
-        bp += 'MDCG' + ':' + str(curBestPerformanceMetric['NDCG'])
-        print('*Best Performance* ')
-        print('Epoch:', str(self.bestPerformance['epoch']) + ',', bp)
-        print('-' * 120)
+        # bp = ''
+        # curBestPerformanceMetric = self.bestPerformance['metric']
+        # bp += 'Hit Ratio' + ':' + \
+        #     str(curBestPerformanceMetric['Hit Ratio']) + ' | '
+        # bp += 'Precision' + ':' + \
+        #     str(curBestPerformanceMetric['Precision']) + ' | '
+        # bp += 'Recall' + ':' + str(curBestPerformanceMetric['Recall']) + ' | '
+        # bp += 'MDCG' + ':' + str(curBestPerformanceMetric['NDCG'])
+        # print('*Best Performance* ')
+        # print('Epoch:', str(self.bestPerformance['epoch']) + ',', bp)
+        # print('-' * 120)
         # print('Addon:', ',', str(self.bestPerformance['addon']))
         # print('-' * 120)
         # if (epoch + 1) % 10 ==0:
