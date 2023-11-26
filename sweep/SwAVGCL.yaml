@@ -2,7 +2,7 @@
 program: /workspace/index.py
 method: bayes
 name: SWAVGCL-yelp2018
-run_cap: 50
+run_cap: 20
 command:
   - ${env}
   - ${interpreter}
@@ -15,8 +15,8 @@ command:
   - "yelp2018"
   - ${args}
 metric:
-  goal: minimize
-  name: batch_loss
+  goal: maximize
+  name: best.Recall@50
 parameters:
   model_config.temperature:
     max: 0.2

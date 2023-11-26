@@ -2,7 +2,7 @@
 program: /workspace/index.py
 method: bayes
 name: SWAVGCL-yelp2018
-run_cap: 500
+run_cap: 20
 command:
   - ${env}
   - ${interpreter}
@@ -10,7 +10,7 @@ command:
   - "--model"
   - "SwAVGCL2"
   - "--gpu_id"
-  - "0"
+  - "1"
   - "--dataset"
   - "yelp2018"
   - ${args}
@@ -23,8 +23,8 @@ parameters:
     min: 0.025
     distribution: uniform
   model_config.proto_reg:
-    max: 2e-4
-    min: 2e-8
+    max: 1e-1
+    min: 1e-4
     distribution: uniform
   model_config.num_clusters: 
     values: [1000, 1500, 2000]
