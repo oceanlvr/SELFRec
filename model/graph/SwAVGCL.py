@@ -73,8 +73,11 @@ class SwAVGCL(GraphRecommender):
         with torch.no_grad():
             # 我们通常希望返回的矩阵Q的每一列代表一个样本的软聚类分配，而每一行对应一个聚类中心
             # 如果没有使用转置，即没有.T，那么Q矩阵的每一行代表一个样本的软分配，每一列代表一个聚类中心的分配
-            Q = torch.exp(scores / epsilon).t()  # 用指数函数转换分数以获得正值
-            Q /= Q.sum(dim=1, keepdim=True)  # 归一化以使每行和为1
+            scores_max = torch.max(scores, dim=1, keepdim=True).values
+            scores_stable = scores - scores_max
+            Q = torch.exp(scores_stable / epsilon).t()        # 用指数函数转换分数以获得正值
+            # Q通常表示样本分配到某个原型的概率，因此我们需要对每一个样本（或每一行）分别进行归一化，以保证每个样本的原型分配概率之和为1
+            Q /= (Q.sum(dim=1, keepdim=True) + 1e-8)   # 归一化以使每行和为1
 
             K, B = Q.shape  # K是聚类数量，B是批处理大小
             u = torch.zeros(K).to(scores.device)  # 初始化u和r为0向量
@@ -83,10 +86,11 @@ class SwAVGCL(GraphRecommender):
 
             for _ in range(n_iters):
                 u = Q.sum(dim=1)  # 按行求和
-                Q *= (r / u).unsqueeze(1)  # 更新Q矩阵以满足行约束
+                Q *= (r / (u + 1e-8)).unsqueeze(1)  # 更新Q矩阵以满足行约束
                 Q *= (c / Q.sum(dim=0)).unsqueeze(0)  # 更新Q矩阵以满足列约束
-
-            return (Q / Q.sum(dim=0, keepdim=True)).t()  # 返回归一化后的Q矩阵
+                
+            Q = (Q / Q.sum(dim=0, keepdim=True)).t() # 返回归一化后的Q矩阵
+            return Q
 
     def train(self):
         model = self.model.cuda()
@@ -115,14 +119,25 @@ class SwAVGCL(GraphRecommender):
                 # Swapping assignments between views loss
                 cl_loss = torch.zeros_like(rec_loss)
 
-                if epoch >=20: # warm_up
-                    cl_loss = self.cal_cl_loss([user_idx, pos_idx],[rec_user_emb, cl_user_emb], [rec_item_emb, cl_item_emb], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
+                # if epoch >=20: # warm_up
+                cl_loss = self.cal_cl_loss([user_idx, pos_idx],[rec_user_emb, cl_user_emb], [rec_item_emb, cl_item_emb], [user_prototypes, item_prototypes], self.config["model_config.temperature"])
 
                 batch_loss = rec_loss + cl_loss
 
                 optimizer.zero_grad()
                 batch_loss.backward()
                 optimizer.step()
+
+                # 在优化器更新参数后进行原型正则化
+                with torch.no_grad():
+                    normalized_user_prototypes = F.normalize(
+                        self.model.prototypes_dict['user_prototypes'], p=2, dim=1)
+                    normalized_item_prototypes = F.normalize(
+                        self.model.prototypes_dict['item_prototypes'], p=2, dim=1)
+
+                    # 必须创建一个新的nn.Parameter，因为F.normalize返回的是一个普通Tensor
+                    self.model.prototypes_dict['user_prototypes'] = nn.Parameter(normalized_user_prototypes)
+                    self.model.prototypes_dict['item_prototypes'] = nn.Parameter(normalized_item_prototypes)
 
                 wandb.log(
                     {

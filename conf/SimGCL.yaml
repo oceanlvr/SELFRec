@@ -16,7 +16,6 @@ yelp2018:
   model_config.num_layers: 3
   model_config.lambda: 0.2
   model_config.eps: 0.2
-  model_config.tau: 0.15
 
 iFashion:
   name: SimGCL

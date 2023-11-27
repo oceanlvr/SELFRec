@@ -53,7 +53,7 @@ if __name__ == '__main__':
     config = mergeDict(config, args)
     run = wandb.init(project="gcl_same_scaler", group=args['group'], job_type=args['job_type'],
                entity="oceanlvr", name=args['run_name'] or None, config=config)
-    wandb.run.log_code(".")
+    # wandb.run.log_code(".")
 
     # fix_random_seed(wandb.config['seed'])
     print('='*10, 'wandb.config', '='*10)

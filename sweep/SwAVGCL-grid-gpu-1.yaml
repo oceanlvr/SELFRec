@@ -1,0 +1,23 @@
+# config.yaml
+program: /workspace/index.py
+method: grid
+name: SWAVGCL-yelp2018
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - "--model"
+  - "SwAVGCL"
+  - "--gpu_id"
+  - "1"
+  - "--dataset"
+  - "yelp2018"
+  - ${args}
+metric:
+  goal: maximize
+  name: best.Recall@50
+parameters:
+  model_config.temperature:
+    values: [0.0001, 0.001, 0.025, 0.05]
+  model_config.proto_reg:
+    values: [1e-3, 1e-4, 1e-5, 1e-6]
